@@ -9,8 +9,10 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PatientDashboard from "./pages/PatientDashboard";
 import MedecinDashboard from "./pages/MedecinDashboard";
-import UserHistory from "./pages/UserHistory";
-import RdvHistory from "./pages/RdvHistory";
+import UserHistory from "./pages/section/UserHistory";
+import RdvHistory from "./pages/section/RdvHistory";
+import RdvPage from "./pages/section/RdvPage";
+import UsersPage from "./pages/section/UsersPage";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/medecindashboard" element={<MedecinDashboard />} /> 
           <Route path="/history/users" element={<UserHistory />} />
           <Route path="/history/appointments" element={<RdvHistory />} />
+          <Route path="/rendezvous" element={<RdvPage />} /> 
+          <Route path="/userspage" element={<UsersPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

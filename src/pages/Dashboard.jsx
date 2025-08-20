@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import PatientDashboard from "./PatientDashboard";
 import MedecinDashboard from "./MedecinDashboard";
-import { Filtres } from "@/components/Historiques/Filtres";
-import { FiltresHistory } from "@/components/Historiques/FiltresHistory";
-import UserHistory from "./UserHistory";
-import RdvHistory from "./RdvHistory";
+import UserHistory from "./section/UserHistory";
+import RdvHistory from "./section/RdvHistory";
+import RdvPage from "./section/RdvPage";
+import UsersPage from "./section/UsersPage";
 import { Users2, CalendarCheck, Settings, X, Bell, History, Eye, Trash2, Calendar, User, Activity, ArrowLeft } from "lucide-react";
 
 const Dashboard = () => {
@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [showUsersTable, setShowUsersTable] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({ username: "", email: "", age: "", role: "patient", specialite: "" });
-  const [showRendezVous, setShowRendezVous] = useState(false);
   const [rendezVous, setRendezVous] = useState([]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [alerts, setAlerts] = useState([]);
@@ -207,7 +206,6 @@ const Dashboard = () => {
 
   const handleHistoryTypeSelection = (type) => {
     setShowHistorySelection(false);
-
     if (type === "users") {
       addToHistory("Consultation historique", "Consultation de l'historique de gestion d'utilisateurs");
       navigate("/history/users");
@@ -216,6 +214,12 @@ const Dashboard = () => {
       navigate("/history/appointments");
     }
   };
+
+  const handleShowRendezVous = () => {
+    addToHistory("Consultation rendez-vous", "Ouverture de la page des rendez-vous");
+    navigate("/rendezvous");
+  };
+
 
   const AdminStaffDashboard = ({ label }) => (
     <div className="space-y-12">
@@ -308,35 +312,34 @@ const Dashboard = () => {
         </div>
       )}
 
-        {/* Bloc de statistiques */}
-        <div className="grid md:grid-cols-4 gap-6 my-10">
-          <div className="p-6 bg-primary/10 rounded-2xl shadow text-center">
-            <Users2 className="w-8 h-8 text-primary mx-auto mb-2" />
-            <h4 className="text-lg font-bold text-primary">{users.length}</h4>
-            <p className="text-muted-foreground">Utilisateurs</p>
-          </div>
+      {/* Bloc de statistiques */}
+      <div className="grid md:grid-cols-4 gap-6 my-10">
+        <div className="p-6 bg-primary/10 rounded-2xl shadow text-center">
+          <Users2 className="w-8 h-8 text-primary mx-auto mb-2" />
+          <h4 className="text-lg font-bold text-primary">{users.length}</h4>
+          <p className="text-muted-foreground">Utilisateurs</p>
+        </div>
 
-          <div className="p-6 bg-secondary/10 rounded-2xl shadow text-center">
-            <CalendarCheck className="w-8 h-8 text-secondary mx-auto mb-2" />
-            <h4 className="text-lg font-bold text-secondary">{rendezVous.length}</h4>
-            <p className="text-muted-foreground">Rendez-vous</p>
-          </div>
+        <div className="p-6 bg-secondary/10 rounded-2xl shadow text-center">
+          <CalendarCheck className="w-8 h-8 text-secondary mx-auto mb-2" />
+          <h4 className="text-lg font-bold text-secondary">{rendezVous.length}</h4>
+          <p className="text-muted-foreground">Rendez-vous</p>
+        </div>
 
-          <div className="p-6 bg-purple-100 rounded-2xl shadow text-center">
-            <History className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-            <h4 className="text-lg font-bold text-purple-600">{_history.length}</h4>
-            <p className="text-muted-foreground">Historique</p>
-          </div>
-          
-          <div className="p-6 bg-red-100 rounded-2xl shadow text-center">
-            <Bell className="w-8 h-8 text-red-500 mx-auto mb-2" />
-            <h4 className="text-lg font-bold text-red-500">{alerts.length}</h4>
-            <p className="text-muted-foreground">Alertes</p>
-          </div>
-
+        <div className="p-6 bg-purple-100 rounded-2xl shadow text-center">
+          <History className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+          <h4 className="text-lg font-bold text-purple-600">{_history.length}</h4>
+          <p className="text-muted-foreground">Historique</p>
         </div>
         
+        <div className="p-6 bg-red-100 rounded-2xl shadow text-center">
+          <Bell className="w-8 h-8 text-red-500 mx-auto mb-2" />
+          <h4 className="text-lg font-bold text-red-500">{alerts.length}</h4>
+          <p className="text-muted-foreground">Alertes</p>
+        </div>
 
+      </div>
+        
       <div className="grid md:grid-cols-4 gap-8">
         {/* Gestion des utilisateurs */}
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6">
@@ -349,42 +352,33 @@ const Dashboard = () => {
           </p>
           <div className="mt-6">
             <Button
-              onClick={() => {
-                setShowUsersTable(!showUsersTable);
-                if (!showUsersTable) {
-                  addToHistory("Consultation utilisateurs", "Ouverture de la liste des utilisateurs");
-                }
-              }}
+              onClick={() => navigate("/userspage")}
               className="bg-primary hover:bg-primary-hover-600 text-primary-foreground transition-colors"
             >
               Gérer les comptes
             </Button>
+
           </div>
         </article>
 
         {/* Rendez-vous */}
-        <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-secondary border">
-          <h3 className="flex items-center gap-3 text-secondary font-semibold text-lg mb-3">
-            <CalendarCheck className="w-6 h-6" />
-            Rendez-vous
-          </h3>
-          <p className="text-muted-foreground leading-relaxed">
-            Supervisez et réaffectez les créneaux médicaux.
-          </p>
-          <div className="mt-6">
-            <Button
-              onClick={() => {
-                setShowRendezVous(!showRendezVous);
-                if (!showRendezVous) {
-                  addToHistory("Consultation rendez-vous", "Ouverture de la liste des rendez-vous");
-                }
-              }}
-              className="bg-secondary hover:bg-secondary-hover-600 text-white transition-colors"
-            >
-              Voir les rendez-vous
-            </Button>
-          </div>
-        </article>
+       <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-secondary border">
+        <h3 className="flex items-center gap-3 text-secondary font-semibold text-lg mb-3">
+          <CalendarCheck className="w-6 h-6" />
+          Rendez-vous
+        </h3>
+        <p className="text-muted-foreground leading-relaxed">
+          Supervisez et réaffectez les créneaux médicaux.
+        </p>
+        <div className="mt-6">
+          <Button
+            onClick={handleShowRendezVous}
+            className="bg-secondary hover:bg-secondary-hover-600 text-white transition-colors"
+          >
+            Voir les rendez-vous
+          </Button>
+        </div>
+      </article>
 
         {/* Historique d'utilisation */}
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-purple-500 border">
@@ -433,7 +427,6 @@ const Dashboard = () => {
             <FiltresHistory filters={filters} onFiltersChange={setFilters} />
           </div>
 
-          {/* ajout espace */}
           <div className="mt-6 overflow-auto max-h-[400px] border border-border rounded-lg">
             <table className="w-full border-collapse border border-border min-w-[700px]">
               <thead>
@@ -510,157 +503,86 @@ const Dashboard = () => {
             </table>
           </div>
 
-          {/* ajout espace */}
-          <div className="mt-6 flex justify-end gap-2">
-            <Button onClick={() => setShowAddModal(true)} className="bg-green-500 hover:bg-green-600 text-white">
-              Ajouter un nouvel utilisateur
-            </Button>
-          </div>
-        </div>
-                )}
-
-          {/* Tableau des rendez-vous */}
-          {showRendezVous && (
-            <div className="mt-10">
-              <div className="flex justify-end mb-4">
-                <Button
-                  onClick={() => setShowRendezVous(false)}
-                  className="text-white p-1 rounded-full flex items-center justify-center hover:bg-muted/20 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* filtres */}
-              <div className="bg-card rounded-2xl shadow-md border border-border p-6">
-                <Filtres filters={filters} onFiltersChange={setFilters} />
-              </div>
-
-              {/* ajout espace */}
-              <div className="mt-6 overflow-auto max-h-[400px] border border-border rounded-lg">
-                <table className="w-full border-collapse border border-border min-w-[1000px]">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="border p-2">ID</th>
-                      <th className="border p-2">Username</th>
-                      <th className="border p-2">Nom</th>
-                      <th className="border p-2">Prénom</th>
-                      <th className="border p-2">Email</th>
-                      <th className="border p-2">Téléphone</th>
-                      <th className="border p-2">Spécialité</th>
-                      <th className="border p-2">Médecin</th>
-                      <th className="border p-2">Date</th>
-                      <th className="border p-2">Heure</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rendezVous.length > 0 ? (
-                      rendezVous.map((rdv, index) => {
-                        let username = rdv.username;
-                        try {
-                          const parsed = JSON.parse(rdv.username);
-                          if (parsed.username) username = parsed.username;
-                        } catch {
-                          // Silently handle parsing errors - username might not be in JSON format
-                        }
-                        return (
-                          <tr key={index} className={`hover:bg-muted/50 ${rdv.isNew ? "bg-yellow-100" : ""}`}>
-                            <td className="border p-2">{index + 1}</td>
-                            <td className="border p-2">{username}</td>
-                            <td className="border p-2">{rdv.nom || "-"}</td>
-                            <td className="border p-2">{rdv.prenom || "-"}</td>
-                            <td className="border p-2">{rdv.email || "-"}</td>
-                            <td className="border p-2">{rdv.telephone || "-"}</td>
-                            <td className="border p-2">{rdv.specialite || "-"}</td>
-                            <td className="border p-2">{rdv.medecin || "-"}</td>
-                            <td className="border p-2">{rdv.date || "-"}</td>
-                            <td className="border p-2">{rdv.heure || rdv.time || "-"}</td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={10} className="text-center p-4">Aucun rendez-vous enregistré</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button onClick={() => setShowAddModal(true)} className="bg-green-500 hover:bg-green-600 text-white">
+                Ajouter un nouvel utilisateur
+              </Button>
             </div>
-          )}
+        </div>
+      )}
 
-          {/* Modal d'ajout utilisateur */}
-          {showAddModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-background rounded-2xl w-full max-w-2xl mx-auto my-auto p-10 relative shadow-2xl transform transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto">
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors duration-200 rounded-full p-1 hover:bg-muted/50"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-                <h3 className="text-4xl font-bold mb-8 text-center text-primary">Ajouter un utilisateur</h3>
-                <div className="space-y-6">
-                  <input
-                    type="text"
-                    placeholder="Nom"
-                    value={newUser.username}
-                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                    className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all "
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Âge"
-                    value={newUser.age}
-                    onChange={(e) => setNewUser({ ...newUser, age: e.target.value })}
-                    className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
-                  />
-                  <select
-                    value={newUser.role}
-                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
+      {/* Modal d'ajout utilisateur */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-2xl w-full max-w-2xl mx-auto my-auto p-10 relative shadow-2xl transform transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors duration-200 rounded-full p-1 hover:bg-muted/50"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="text-4xl font-bold mb-8 text-center text-primary">Ajouter un utilisateur</h3>
+            <div className="space-y-6">
+              <input
+                type="text"
+                placeholder="Nom"
+                value={newUser.username}
+                onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all "
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
+              />
+              <input
+                type="number"
+                placeholder="Âge"
+                value={newUser.age}
+                onChange={(e) => setNewUser({ ...newUser, age: e.target.value })}
+                className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
+              />
+              <select
+                value={newUser.role}
+                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
+              >
+                <option value="patient">Patient</option>
+                <option value="medecin">Médecin</option>
+                <option value="admin">Admin</option>
+                <option value="staff">Staff</option>
+              </select>
+              {newUser.role === "medecin" && (
+                <input
+                  type="text"
+                  placeholder="Spécialité"
+                  value={newUser.specialite}
+                  onChange={(e) => setNewUser({ ...newUser, specialite: e.target.value })}
+                  className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
+                />
+              )}
+            </div>
+                {/* ajout espace */}
+                <div className="mt-10 flex justify-end gap-6">
+                  <Button
+                    onClick={handleAddUser}
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <option value="patient">Patient</option>
-                    <option value="medecin">Médecin</option>
-                    <option value="admin">Admin</option>
-                    <option value="staff">Staff</option>
-                  </select>
-                  {newUser.role === "medecin" && (
-                    <input
-                      type="text"
-                      placeholder="Spécialité"
-                      value={newUser.specialite}
-                      onChange={(e) => setNewUser({ ...newUser, specialite: e.target.value })}
-                      className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all duration-200"
-                    />
-                  )}
+                    Ajouter
+                  </Button>
+                  <Button
+                    onClick={() => setShowAddModal(false)}
+                    variant="outline"
+                    className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Annuler
+                  </Button>
                 </div>
-                    {/* ajout espace */}
-                    <div className="mt-10 flex justify-end gap-6">
-                      <Button
-                        onClick={handleAddUser}
-                        className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-                      >
-                        Ajouter
-                      </Button>
-                      <Button
-                        onClick={() => setShowAddModal(false)}
-                        variant="outline"
-                        className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
-                      >
-                        Annuler
-                      </Button>
-                    </div>
-                    </div>
                 </div>
-            )}
+            </div>
+      )}
 
 
     </div>

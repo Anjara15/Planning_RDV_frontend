@@ -7,9 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 
 const availableSlots = {
-  "2025-08-13": ["09:00", "10:30", "14:00", "15:30", "16:00"],
-  "2025-08-14": ["08:30", "09:30", "11:00", "14:30", "16:30"],
-  "2025-08-15": ["08:00", "09:00", "10:00", "15:00", "17:00"],
+  "2025-08-19": ["09:00", "10:30", "14:00", "15:30", "16:00"],
+  "2025-08-20": ["08:30", "09:30", "11:00", "14:30", "16:30"],
+  "2025-08-21": ["08:00", "09:00", "10:00", "15:00", "17:00"],
 };
 
 const PatientDashboard = () => {
@@ -183,18 +183,19 @@ const PatientDashboard = () => {
             <div className="space-y-4">
               <div>
                 <Label>Spécialité</Label>
-                <Select onValueChange={setSelectedSpecialty}>
-                  <SelectTrigger className="w-full h-12">
-                    <SelectValue placeholder="Sélectionnez une spécialité" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">Médecine Générale</SelectItem>
-                    <SelectItem value="cardiology">Cardiologie</SelectItem>
-                    <SelectItem value="pediatrics">Pédiatrie</SelectItem>
-                    <SelectItem value="orthopedics">Orthopédie</SelectItem>
-                    <SelectItem value="neurology">Neurologie</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+                <SelectTrigger className="w-full h-12">
+                  <SelectValue placeholder="Sélectionnez une spécialité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">Médecine Générale</SelectItem>
+                  <SelectItem value="cardiology">Cardiologie</SelectItem>
+                  <SelectItem value="pediatrics">Pédiatrie</SelectItem>
+                  <SelectItem value="orthopedics">Orthopédie</SelectItem>
+                  <SelectItem value="neurology">Neurologie</SelectItem>
+                </SelectContent>
+              </Select>
+
               </div>
 
               <div>
