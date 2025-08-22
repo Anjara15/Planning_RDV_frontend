@@ -54,11 +54,9 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
   );
   const [editProfile, setEditProfile] = useState(null);
 
-  // Initialize data from localStorage
   useEffect(() => {
     if (!initialized) {
       const storedProfile = JSON.parse(localStorage.getItem("user") || "{}");
-      // Migrate username to nom/prenom if needed
       const updatedProfile = {
         nom: storedProfile.username ? storedProfile.username.split(" ")[0] : storedProfile.nom || "",
         prenom: storedProfile.username ? storedProfile.username.split(" ")[1] || "" : storedProfile.prenom || "",
@@ -78,7 +76,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
         console.error("Error parsing rendezVous from localStorage:", error);
       }
 
-      // Filter appointments for the current user
       const userAppointments = appointments.filter((rdv) => {
         try {
           if (typeof rdv.username === "string" && rdv.username.startsWith("{")) {
@@ -94,7 +91,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
 
       setRendezVous(userAppointments);
 
-      // Initialize alerts for new appointments
       const newAlerts = userAppointments
         .filter((rdv) => rdv.isNew)
         .map((rdv) => ({
@@ -120,7 +116,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       isNew: true,
     };
 
-    // Update localStorage
     let allAppointments = [];
     try {
       allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
@@ -130,7 +125,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     allAppointments.push(newRdv);
     localStorage.setItem("rendezVous", JSON.stringify(allAppointments));
 
-    // Update state
     setRendezVous([...rendezVous, newRdv]);
     setAlerts([
       ...alerts,
@@ -157,7 +151,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     const rdvToCancel = rendezVous.find((rdv) => rdv.id === rdvId);
     const updatedRdv = rendezVous.filter((rdv) => rdv.id !== rdvId);
 
-    // Update localStorage
     let allAppointments = [];
     try {
       allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
@@ -167,7 +160,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     const updatedAllAppointments = allAppointments.filter((rdv) => rdv.id !== rdvId);
     localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
 
-    // Update state
     setRendezVous(updatedRdv);
     setAlerts(alerts.filter((alert) => alert.id !== `rdv-${rdvId}`));
     addToHistory?.(
@@ -185,7 +177,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       const updatedRdv = rendezVous.map((rdv) => ({ ...rdv, isNew: false }));
       setRendezVous(updatedRdv);
 
-      // Update localStorage
       let allAppointments = [];
       try {
         allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
@@ -202,7 +193,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     }
   };
 
-  // Handle profile edit
   const handleEditProfile = () => {
     setEditProfile({ ...profile });
   };
@@ -213,13 +203,11 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
   };
 
   const handleSaveProfile = () => {
-    // Basic validation
     if (!editProfile.nom || !editProfile.prenom || !editProfile.email) {
       alert("Veuillez remplir tous les champs obligatoires (Nom, Prénom, Email).");
       return;
     }
 
-    // Update localStorage
     try {
       const updatedProfile = { ...profile, ...editProfile };
       localStorage.setItem("user", JSON.stringify(updatedProfile));
@@ -237,16 +225,14 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     setEditProfile(null);
   };
 
-  // Render Profile View
   const renderProfile = () => (
     <div className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
       <div className="flex justify-between items-center border-b border-border pb-5">
-        {/* <h2 className="text-3xl font-semibold text-primary tracking-tight">Mon profil</h2> */}
         <Button
           variant="outline"
           onClick={() => {
             setCurrentView("dashboard");
-            setEditProfile(null); // Reset edit mode on back
+            setEditProfile(null);
           }}
           className="px-4 py-2 rounded-xl"
         >
@@ -411,7 +397,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     </div>
   );
 
-  // Render Appointment List View
   const renderRdvList = () => (
     <div className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
       <div className="flex justify-between items-center border-b border-border pb-5">
@@ -423,7 +408,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Retour
         </Button>
-        <h2 className="text-3xl font-semibold text-primary tracking-tight">Tous mes rendez-vous</h2>
       </div>
       <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
         {rendezVous.length === 0 ? (
@@ -485,7 +469,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     </div>
   );
 
-  // Render Dashboard
   const renderDashboard = () => (
     <main className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
       <div className="flex justify-between items-center border-b border-border pb-5">

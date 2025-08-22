@@ -1,10 +1,9 @@
-// src/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import PatientDashboard from "./PatientDashboard";
 import MedecinDashboard from "./MedecinDashboard";
-import Header from "./Historiques/Header"; // Importation depuis src/pages/Historiques
+import Header from "./Historiques/Header"; 
 import UserHistory from "./section/UserHistory";
 import RdvHistory from "./section/RdvHistory";
 import RdvPage from "./section/RdvPage";
@@ -218,7 +217,7 @@ const Dashboard = () => {
     navigate("/rendezvous");
   };
 
-  const AdminStaffDashboard = ({ label, logout }) => (
+  const AdminStaffDashboard = ({ label }) => (
     <div className="space-y-12">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-semibold text-primary tracking-tight">
@@ -559,7 +558,6 @@ const Dashboard = () => {
     </div>
   );
 
-  // Définir les rôles, leurs composants et leurs headers
   const roleConfig = [
     {
       role: "patient",
@@ -573,7 +571,7 @@ const Dashboard = () => {
     },
     {
       role: "admin",
-      component: <AdminStaffDashboard label="Administrateur" logout={logout} />,
+      component: <AdminStaffDashboard label="Administrateur" />,
       header: (
         <header className="flex items-center justify-between border-b border-border pb-5">
           <h1 className="text-4xl font-extrabold text-primary">Tableau de bord</h1>
@@ -594,7 +592,7 @@ const Dashboard = () => {
     },
     {
       role: "staff",
-      component: <AdminStaffDashboard label="Personnel" logout={logout} />,
+      component: <AdminStaffDashboard label="Personnel" />,
       header: (
         <header className="flex items-center justify-between border-b border-border pb-5">
           <h1 className="text-4xl font-extrabold text-primary">Tableau de bord</h1>

@@ -656,7 +656,6 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
   );
 };
 
-// Validation des props
 MedecinDashboard.propTypes = {
   currentUser: PropTypes.shape({
     username: PropTypes.string,
