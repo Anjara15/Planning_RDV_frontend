@@ -1,18 +1,35 @@
 import { useEffect, useState } from "react";
-import { Calendar, Heart, Clock, Bell, X } from "lucide-react";
+import {
+  Calendar,
+  Heart,
+  Clock,
+  Bell,
+  X,
+  User,
+  List,
+  ChevronRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
 const availableSlots = {
-  "2025-08-19": ["09:00", "10:30", "14:00", "15:30", "16:00"],
-  "2025-08-20": ["08:30", "09:30", "11:00", "14:30", "16:30"],
-  "2025-08-21": ["08:00", "09:00", "10:00", "15:00", "17:00"],
+  "2025-08-25": ["09:00", "10:30", "14:00", "15:30", "16:00"],
+  "2025-08-26": ["08:30", "09:30", "11:00", "14:30", "16:30"],
+  "2025-08-27": ["08:00", "09:00", "10:00", "15:00", "17:00"],
 };
 
-const PatientDashboard = () => {
+const specialties = [
+  { id: "general", name: "Médecine Générale", icon: Heart, color: "text-primary" },
+  { id: "cardiology", name: "Cardiologie", icon: Heart, color: "text-red-600" },
+  { id: "pediatrics", name: "Pédiatrie", icon: Heart, color: "text-green-600" },
+  { id: "orthopedics", name: "Orthopédie", icon: Heart, color: "text-orange-600" },
+  { id: "neurology", name: "Neurologie", icon: Heart, color: "text-purple-600" },
+];
+
+const PatientDashboard = ({ currentUser, addToHistory }) => {
   const [rendezVous, setRendezVous] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showAlerts, setShowAlerts] = useState(false);
@@ -21,67 +38,459 @@ const PatientDashboard = () => {
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [demande, setDemande] = useState("");
+  const [bookingStep, setBookingStep] = useState(1);
+  const [selectedSpecialtyObj, setSelectedSpecialtyObj] = useState(null);
+  const [initialized, setInitialized] = useState(false);
+  const [currentView, setCurrentView] = useState("dashboard");
+  const [profile, setProfile] = useState(
+    JSON.parse(localStorage.getItem("user")) || {
+      nom: "",
+      prenom: "",
+      email: "",
+      telephone: "",
+      dateNaissance: "",
+      adresse: "",
+    }
+  );
+  const [editProfile, setEditProfile] = useState(null);
 
+  // Initialize data from localStorage
   useEffect(() => {
-    const username = localStorage.getItem("user");
-    const allRdv = JSON.parse(localStorage.getItem("rendezVous") || "[]");
-    const patientRdv = allRdv.filter(rdv => rdv.username === username);
-    setRendezVous(patientRdv);
+    if (!initialized) {
+      const storedProfile = JSON.parse(localStorage.getItem("user") || "{}");
+      // Migrate username to nom/prenom if needed
+      const updatedProfile = {
+        nom: storedProfile.username ? storedProfile.username.split(" ")[0] : storedProfile.nom || "",
+        prenom: storedProfile.username ? storedProfile.username.split(" ")[1] || "" : storedProfile.prenom || "",
+        email: storedProfile.email || "",
+        telephone: storedProfile.telephone || "",
+        dateNaissance: storedProfile.dateNaissance || "",
+        adresse: storedProfile.adresse || "",
+      };
+      setProfile(updatedProfile);
+      localStorage.setItem("user", JSON.stringify(updatedProfile));
 
-    const newRdvAlerts = patientRdv
-      .filter(rdv => rdv.isNew)
-      .map(rdv => ({
-        id: `rdv-${rdv.id}`,
-        message: `Nouveau rendez-vous ajouté pour le ${rdv.date} à ${rdv.time}`,
-      }));
-    setAlerts(newRdvAlerts);
-  }, []);
+      const username = currentUser?.username || `${updatedProfile.nom} ${updatedProfile.prenom}`.trim() || "patient123";
+      let appointments = [];
+      try {
+        appointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
+      } catch (error) {
+        console.error("Error parsing rendezVous from localStorage:", error);
+      }
+
+      // Filter appointments for the current user
+      const userAppointments = appointments.filter((rdv) => {
+        try {
+          if (typeof rdv.username === "string" && rdv.username.startsWith("{")) {
+            const parsedUsername = JSON.parse(rdv.username);
+            return parsedUsername.username === username;
+          }
+          return rdv.username === username;
+        } catch (error) {
+          console.error("Error parsing appointment username:", error);
+          return false;
+        }
+      });
+
+      setRendezVous(userAppointments);
+
+      // Initialize alerts for new appointments
+      const newAlerts = userAppointments
+        .filter((rdv) => rdv.isNew)
+        .map((rdv) => ({
+          id: `rdv-${rdv.id}`,
+          message: `Nouveau rendez-vous ajouté pour le ${rdv.date} à ${rdv.time || rdv.heure}`,
+        }));
+      setAlerts(newAlerts);
+
+      addToHistory?.("Connexion", `Connexion au tableau de bord patient`, currentUser);
+      setInitialized(true);
+    }
+  }, [initialized, currentUser, addToHistory]);
 
   const handleAddRdv = () => {
-    const username = localStorage.getItem("user");
+    const username = `${profile.nom || "patient"} ${profile.prenom || "123"}`.trim();
     const newRdv = {
       id: Date.now(),
       username,
       date: selectedDate,
       time: selectedTime,
-      specialite: selectedSpecialty,
+      specialite: selectedSpecialtyObj?.name || selectedSpecialty,
       demande,
       isNew: true,
     };
 
-    const allRdv = JSON.parse(localStorage.getItem("rendezVous") || "[]");
-    const updatedRdv = [...allRdv, newRdv];
-    localStorage.setItem("rendezVous", JSON.stringify(updatedRdv));
-    setRendezVous([...rendezVous, newRdv]);
-    setAlerts([...alerts, { id: `rdv-${newRdv.id}`, message: `Nouveau rendez-vous ajouté pour le ${newRdv.date} à ${newRdv.time}` }]);
-    setIsModalOpen(false);
+    // Update localStorage
+    let allAppointments = [];
+    try {
+      allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
+    } catch (error) {
+      console.error("Error parsing rendezVous from localStorage:", error);
+    }
+    allAppointments.push(newRdv);
+    localStorage.setItem("rendezVous", JSON.stringify(allAppointments));
 
+    // Update state
+    setRendezVous([...rendezVous, newRdv]);
+    setAlerts([
+      ...alerts,
+      {
+        id: `rdv-${newRdv.id}`,
+        message: `Nouveau rendez-vous ajouté pour le ${newRdv.date} à ${newRdv.time}`,
+      },
+    ]);
+    addToHistory?.(
+      "Ajout rendez-vous",
+      `Ajout d'un rendez-vous: ${newRdv.specialite} le ${newRdv.date} à ${newRdv.time}`,
+      currentUser
+    );
+    setIsModalOpen(false);
+    setBookingStep(1);
+    setSelectedSpecialtyObj(null);
     setSelectedDate("");
     setSelectedTime("");
     setSelectedSpecialty("");
     setDemande("");
   };
 
+  const handleCancelRdv = (rdvId) => {
+    const rdvToCancel = rendezVous.find((rdv) => rdv.id === rdvId);
+    const updatedRdv = rendezVous.filter((rdv) => rdv.id !== rdvId);
+
+    // Update localStorage
+    let allAppointments = [];
+    try {
+      allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
+    } catch (error) {
+      console.error("Error parsing rendezVous from localStorage:", error);
+    }
+    const updatedAllAppointments = allAppointments.filter((rdv) => rdv.id !== rdvId);
+    localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
+
+    // Update state
+    setRendezVous(updatedRdv);
+    setAlerts(alerts.filter((alert) => alert.id !== `rdv-${rdvId}`));
+    addToHistory?.(
+      "Annulation rendez-vous",
+      `Annulation du rendez-vous: ${rdvToCancel.specialite} le ${rdvToCancel.date} à ${
+        rdvToCancel.time || rdvToCancel.heure
+      }`,
+      currentUser
+    );
+  };
+
   const handleShowAlerts = () => {
     setShowAlerts(!showAlerts);
     if (!showAlerts) {
-      const updatedRdv = rendezVous.map(rdv => ({ ...rdv, isNew: false }));
+      const updatedRdv = rendezVous.map((rdv) => ({ ...rdv, isNew: false }));
       setRendezVous(updatedRdv);
-      const allRdv = JSON.parse(localStorage.getItem("rendezVous") || "[]");
-      const updatedAllRdv = allRdv.map(rdv =>
-        rdv.username === localStorage.getItem("user") ? { ...rdv, isNew: false } : rdv
+
+      // Update localStorage
+      let allAppointments = [];
+      try {
+        allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
+      } catch (error) {
+        console.error("Error parsing rendezVous from localStorage:", error);
+      }
+      const updatedAllAppointments = allAppointments.map((rdv) =>
+        updatedRdv.find((u) => u.id === rdv.id) || rdv
       );
-      localStorage.setItem("rendezVous", JSON.stringify(updatedAllRdv));
+      localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
+
       setAlerts([]);
+      addToHistory?.("Consultation alertes", "Consultation et marquage des alertes comme lues", currentUser);
     }
   };
 
-  return (
-    <section className="space-y-10">
-      {/* En-tête */}
-      <div className="flex justify-between items-center">
+  // Handle profile edit
+  const handleEditProfile = () => {
+    setEditProfile({ ...profile });
+  };
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setEditProfile((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    // Basic validation
+    if (!editProfile.nom || !editProfile.prenom || !editProfile.email) {
+      alert("Veuillez remplir tous les champs obligatoires (Nom, Prénom, Email).");
+      return;
+    }
+
+    // Update localStorage
+    try {
+      const updatedProfile = { ...profile, ...editProfile };
+      localStorage.setItem("user", JSON.stringify(updatedProfile));
+      setProfile(updatedProfile);
+      setEditProfile(null);
+      addToHistory?.("Modification profil", "Mise à jour des informations du profil", currentUser);
+      alert("Profil mis à jour avec succès !");
+    } catch (error) {
+      console.error("Error saving profile to localStorage:", error);
+      alert("Erreur lors de la sauvegarde du profil.");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditProfile(null);
+  };
+
+  // Render Profile View
+  const renderProfile = () => (
+    <div className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
+      <div className="flex justify-between items-center border-b border-border pb-5">
+        {/* <h2 className="text-3xl font-semibold text-primary tracking-tight">Mon profil</h2> */}
+        <Button
+          variant="outline"
+          onClick={() => {
+            setCurrentView("dashboard");
+            setEditProfile(null); // Reset edit mode on back
+          }}
+          className="px-4 py-2 rounded-xl"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour
+        </Button>
+      </div>
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
+        <h3 className="text-4xl font-bold mb-8 text-center text-primary">Mon profil</h3>
+        <div className="space-y-6">
+          {editProfile ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-base font-medium">Nom</Label>
+                  <Input
+                    name="nom"
+                    value={editProfile.nom || ""}
+                    onChange={handleProfileChange}
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    placeholder="Entrez votre nom"
+                  />
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Prénom</Label>
+                  <Input
+                    name="prenom"
+                    value={editProfile.prenom || ""}
+                    onChange={handleProfileChange}
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    placeholder="Entrez votre prénom"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-base font-medium">Email</Label>
+                <Input
+                  name="email"
+                  value={editProfile.email || ""}
+                  onChange={handleProfileChange}
+                  type="email"
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  placeholder="Entrez votre email"
+                />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Téléphone</Label>
+                <Input
+                  name="telephone"
+                  value={editProfile.telephone || ""}
+                  onChange={handleProfileChange}
+                  type="tel"
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  placeholder="Entrez votre numéro de téléphone"
+                />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Date de naissance</Label>
+                <Input
+                  name="dateNaissance"
+                  value={editProfile.dateNaissance || ""}
+                  onChange={handleProfileChange}
+                  type="date"
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  placeholder="Entrez votre date de naissance"
+                />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Adresse</Label>
+                <Input
+                  name="adresse"
+                  value={editProfile.adresse || ""}
+                  onChange={handleProfileChange}
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  placeholder="Entrez votre adresse"
+                />
+              </div>
+              <div className="flex justify-end gap-6 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  className="bg-primary hover:bg-primary-hover-600 text-primary-foreground px-8 py-4 rounded-xl"
+                  onClick={handleSaveProfile}
+                >
+                  Sauvegarder
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-base font-medium">Nom</Label>
+                  <Input
+                    value={profile.nom || "Non défini"}
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    readOnly
+                  />
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Prénom</Label>
+                  <Input
+                    value={profile.prenom || "Non défini"}
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    readOnly
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-base font-medium">Email</Label>
+                <Input
+                  value={profile.email || "Non défini"}
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  readOnly
+                />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Téléphone</Label>
+                <Input
+                  value={profile.telephone || "Non défini"}
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  readOnly
+                />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Date de naissance</Label>
+                <Input
+                  value={
+                    profile.dateNaissance
+                      ? new Date(profile.dateNaissance).toLocaleDateString("fr-FR")
+                      : "Non défini"
+                  }
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  readOnly
+                />
+              </div>
+              <div>
+                <Label className="text-base font-medium">Adresse</Label>
+                <Input
+                  value={profile.adresse || "Non défini"}
+                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                  readOnly
+                />
+              </div>
+              <div className="flex justify-end gap-6 pt-4">
+                <Button
+                  className="bg-primary hover:bg-primary-hover-600 text-primary-foreground px-8 py-4 rounded-xl"
+                  onClick={handleEditProfile}
+                >
+                  Modifier
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render Appointment List View
+  const renderRdvList = () => (
+    <div className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
+      <div className="flex justify-between items-center border-b border-border pb-5">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentView("dashboard")}
+          className="px-4 py-2 rounded-xl"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Retour
+        </Button>
+        <h2 className="text-3xl font-semibold text-primary tracking-tight">Tous mes rendez-vous</h2>
+      </div>
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
+        {rendezVous.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">Aucun rendez-vous enregistré</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {rendezVous.map((rdv) => (
+              <div
+                key={rdv.id}
+                className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Calendar className="w-5 h-5 text-primary" />
+                      <span className="font-medium text-lg">
+                        {new Date(rdv.date).toLocaleDateString("fr-FR", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{rdv.time || rdv.heure}</span>
+                    </div>
+                    <p className="text-foreground font-medium">{rdv.specialite}</p>
+                    {(rdv.demande || rdv.nom) && (
+                      <p className="text-muted-foreground mt-1">
+                        {rdv.demande || `Patient: ${rdv.nom} ${rdv.prenom || ""}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    {rdv.isNew && <Badge variant="secondary">Nouveau</Badge>}
+                    <Badge variant="outline">
+                      {new Date(rdv.date) > new Date() ? "À venir" : "Passé"}
+                    </Badge>
+                    {new Date(rdv.date) > new Date() && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleCancelRdv(rdv.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Annuler
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Render Dashboard
+  const renderDashboard = () => (
+    <main className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
+      <div className="flex justify-between items-center border-b border-border pb-5">
         <h2 className="text-3xl font-semibold text-primary tracking-tight">
-          Bienvenue, Patient
+          Bienvenue, <span className="text-secondary">{profile.nom || "Utilisateur"}</span>
         </h2>
         <button
           onClick={handleShowAlerts}
@@ -97,7 +506,6 @@ const PatientDashboard = () => {
         </button>
       </div>
 
-      {/* Alerts */}
       {showAlerts && (
         <div className="p-4 border rounded bg-white shadow">
           <div className="flex justify-between items-center mb-2">
@@ -110,7 +518,7 @@ const PatientDashboard = () => {
             <p className="text-muted-foreground">Aucune alerte pour le moment.</p>
           ) : (
             <ul className="space-y-1">
-              {alerts.map(alert => (
+              {alerts.map((alert) => (
                 <li key={alert.id} className="p-2 bg-muted rounded">
                   {alert.message}
                 </li>
@@ -120,142 +528,296 @@ const PatientDashboard = () => {
         </div>
       )}
 
-      {/* Deux sections côte à côte */}
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Bloc Prochains RDV (sans liste) */}
-        <article className="medical-card medical-shadow hover:medical-shadow-hover p-6">
-          <h3 className="flex items-center gap-3 text-secondary font-semibold text-lg mb-4">
+      <div className="grid md:grid-cols-4 gap-8">
+        <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-primary border">
+          <h3 className="flex items-center gap-3 text-primary font-semibold text-lg mb-3">
             <Calendar className="w-6 h-6" />
-            Prochains rendez-vous
+            Prendre rendez-vous
           </h3>
-          <Button
-            className="mt-4 bg-primary text-white"
-            onClick={() => setIsModalOpen(true)}
-          >
-            Ajouter un rendez-vous
-          </Button>
+          <p className="text-muted-foreground leading-relaxed">
+            Planifiez facilement vos consultations médicales en quelques clics.
+          </p>
+          <div className="mt-6">
+            <Button
+              className="bg-primary hover:bg-primary-hover-600 text-primary-foreground transition-colors"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Nouveau rendez-vous
+            </Button>
+          </div>
         </article>
 
-        {/* Bloc Conseils santé */}
-        <article className="medical-card medical-shadow hover:medical-shadow-hover p-6 border-accent border">
-          <h3 className="flex items-center gap-3 text-accent font-semibold text-lg mb-4">
+        <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-orange-500 border">
+          <h3 className="flex items-center gap-3 text-orange-600 font-semibold text-lg mb-3">
+            <List className="w-6 h-6" />
+            Mes rendez-vous
+          </h3>
+          <p className="text-muted-foreground leading-relaxed">
+            Consultez la liste de tous vos rendez-vous passés et à venir.
+          </p>
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentView("rdvList");
+                addToHistory?.(
+                  "Consultation rendez-vous",
+                  "Ouverture de la liste des rendez-vous",
+                  currentUser
+                );
+              }}
+              className="border-orange-300 text-orange-600 hover:bg-orange-50"
+            >
+              <List className="w-4 h-4 mr-2" />
+              Voir mes RDV
+              <Badge variant="secondary" className="ml-2">
+                {rendezVous.length}
+              </Badge>
+            </Button>
+          </div>
+        </article>
+
+        <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-purple-500 border">
+          <h3 className="flex items-center gap-3 text-purple-600 font-semibold text-lg mb-3">
+            <User className="w-6 h-6" />
+            Mon profil
+          </h3>
+          <p className="text-muted-foreground leading-relaxed">
+            Consultez et modifiez vos informations personnelles.
+          </p>
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentView("profile");
+                addToHistory?.("Consultation profil", "Ouverture du profil utilisateur", currentUser);
+              }}
+              className="border-purple-300 text-purple-600 hover:bg-purple-50"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Voir mon profil
+            </Button>
+          </div>
+        </article>
+
+        <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-secondary border">
+          <h3 className="flex items-center gap-3 text-secondary font-semibold text-lg mb-3">
             <Heart className="w-6 h-6" />
             Conseils santé
           </h3>
           <p className="text-muted-foreground leading-relaxed">
-            Pensez à bien vous hydrater et à faire une promenade quotidienne pour rester en forme !
+            💧 Pensez à bien vous hydrater et à faire une promenade quotidienne pour rester en forme !
           </p>
         </article>
       </div>
 
-      {/* Liste RDV déplacée ici */}
-      <div className="medical-card medical-shadow p-6">
-        <h4 className="text-lg font-semibold mb-4">Liste des rendez-vous</h4>
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
+        <h4 className="text-lg font-semibold mb-4 text-primary">Prochains rendez-vous</h4>
         {rendezVous.length === 0 ? (
-          <p className="text-muted-foreground">Aucun rendez-vous prévu.</p>
+          <div className="text-center py-8">
+            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">Aucun rendez-vous prévu pour le moment.</p>
+          </div>
         ) : (
-          <ul className="list-disc list-inside text-muted-foreground space-y-2">
-            {rendezVous.map(rdv => (
-              <li
-                key={rdv.id}
-                className={`p-2 rounded ${rdv.isNew ? "bg-yellow-100" : ""}`}
-              >
-                {rdv.date} - {rdv.specialite}
-                {rdv.demande && ` | Demande: ${rdv.demande}`}{" "}
-                {rdv.time && `à ${rdv.time}`}
-              </li>
-            ))}
-          </ul>
+          <div className="grid gap-3">
+            {rendezVous
+              .filter((rdv) => new Date(rdv.date) > new Date())
+              .slice(0, 3)
+              .map((rdv) => (
+                <div
+                  key={rdv.id}
+                  className={`p-4 rounded-lg border-l-4 hover:bg-muted/50 transition-colors ${
+                    rdv.isNew ? "bg-yellow-100 border-yellow-400" : "bg-muted border-border"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {new Date(rdv.date).toLocaleDateString("fr-FR", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {rdv.time || rdv.heure} - {rdv.specialite}
+                      </p>
+                      {(rdv.demande || rdv.nom) && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {rdv.demande || `Patient: ${rdv.nom} ${rdv.prenom || ""}`}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      {rdv.isNew && <Badge variant="secondary">Nouveau</Badge>}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleCancelRdv(rdv.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
         )}
       </div>
 
-      {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-background rounded-2xl w-full max-w-4xl mx-auto my-auto p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 font-bold text-xl"
+              onClick={() => {
+                setIsModalOpen(false);
+                setBookingStep(1);
+                setSelectedSpecialtyObj(null);
+              }}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-destructive rounded-full p-1 hover:bg-muted/50"
             >
-              ×
+              <X className="w-6 h-6" />
             </button>
-            <h3 className="text-2xl font-semibold text-center mb-6">Ajouter un rendez-vous</h3>
-            <div className="space-y-4">
+            <h3 className="text-4xl font-bold mb-8 text-center text-primary">
+              Prendre un rendez-vous
+            </h3>
+
+            {bookingStep === 1 && (
               <div>
-                <Label>Spécialité</Label>
-                <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-                <SelectTrigger className="w-full h-12">
-                  <SelectValue placeholder="Sélectionnez une spécialité" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">Médecine Générale</SelectItem>
-                  <SelectItem value="cardiology">Cardiologie</SelectItem>
-                  <SelectItem value="pediatrics">Pédiatrie</SelectItem>
-                  <SelectItem value="orthopedics">Orthopédie</SelectItem>
-                  <SelectItem value="neurology">Neurologie</SelectItem>
-                </SelectContent>
-              </Select>
-
-              </div>
-
-              <div>
-                <Label>Date</Label>
-                <div className="grid grid-cols-3 gap-3 mt-2">
-                  {Object.keys(availableSlots).map(date => (
-                    <Button
-                      key={date}
-                      variant={selectedDate === date ? "default" : "outline"}
-                      onClick={() => {
-                        setSelectedDate(date);
-                        setSelectedTime("");
-                      }}
-                    >
-                      {new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
-                      <Badge variant="secondary" className="ml-1">{availableSlots[date].length}</Badge>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {selectedDate && (
-                <div>
-                  <Label>Horaire</Label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {availableSlots[selectedDate].map(time => (
-                      <Button
-                        key={time}
-                        variant={selectedTime === time ? "default" : "outline"}
-                        onClick={() => setSelectedTime(time)}
+                <h4 className="font-semibold mb-4 text-lg text-foreground">
+                  Choisissez une spécialité
+                </h4>
+                <div className="grid md:grid-cols-2 gap-8">
+                  {specialties.map((specialty) => {
+                    const IconComponent = specialty.icon;
+                    return (
+                      <div
+                        key={specialty.id}
+                        onClick={() => {
+                          setSelectedSpecialtyObj(specialty);
+                          setBookingStep(2);
+                          addToHistory?.(
+                            "Sélection spécialité",
+                            `Sélection de la spécialité: ${specialty.name}`,
+                            currentUser
+                          );
+                        }}
+                        className="cursor-pointer p-8 border-2 border-primary/20 hover:border-primary rounded-lg transition-colors"
                       >
-                        <Clock className="w-4 h-4 mr-1" /> {time}
-                      </Button>
-                    ))}
-                  </div>
+                        <div className="text-center">
+                          <IconComponent className={`w-10 h-10 ${specialty.color} mx-auto mb-4`} />
+                          <h4 className="text-xl font-semibold">{specialty.name}</h4>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-
-              <div>
-                <Label>Demande / Motif</Label>
-                <Input
-                  type="text"
-                  value={demande}
-                  onChange={e => setDemande(e.target.value)}
-                  placeholder="Ex: Consultation suivi, vaccin..."
-                />
+                <div className="mt-8 text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Annuler
+                  </Button>
+                </div>
               </div>
+            )}
 
-              <Button
-                className="w-full bg-primary text-white mt-4"
-                onClick={handleAddRdv}
-                disabled={!selectedDate || !selectedTime || !selectedSpecialty}
-              >
-                Confirmer le rendez-vous
-              </Button>
-            </div>
+            {bookingStep === 2 && selectedSpecialtyObj && (
+              <div>
+                <button
+                  onClick={() => setBookingStep(1)}
+                  className="text-primary text-sm mb-4 hover:underline"
+                >
+                  <ArrowLeft className="w-4 h-4 inline mr-1" /> Retour aux spécialités
+                </button>
+                <h4 className="font-semibold mb-4 text-lg text-foreground">
+                  {selectedSpecialtyObj.name} - Choisissez une date
+                </h4>
+                <div className="space-y-6">
+                  <div>
+                    <Label className="text-base font-medium">Dates disponibles</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+                      {Object.keys(availableSlots).map((date) => (
+                        <Button
+                          key={date}
+                          variant={selectedDate === date ? "default" : "outline"}
+                          onClick={() => {
+                            setSelectedDate(date);
+                            setSelectedTime("");
+                          }}
+                          className="h-auto p-3 flex flex-col items-center"
+                        >
+                          <span className="font-medium">
+                            {new Date(date).toLocaleDateString("fr-FR", {
+                              day: "2-digit",
+                              month: "short",
+                            })}
+                          </span>
+                          <Badge variant="secondary" className="mt-1">
+                            {availableSlots[date].length} créneaux
+                          </Badge>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {selectedDate && (
+                    <div>
+                      <Label className="text-base font-medium">Créneaux disponibles</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+                        {availableSlots[selectedDate].map((time) => (
+                          <Button
+                            key={time}
+                            variant={selectedTime === time ? "default" : "outline"}
+                            onClick={() => setSelectedTime(time)}
+                            className="flex items-center justify-center"
+                          >
+                            <Clock className="w-4 h-4 mr-2" />
+                            {time}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedTime && (
+                    <div>
+                      <Label className="text-base font-medium">Motif de consultation (optionnel)</Label>
+                      <Input
+                        type="text"
+                        value={demande}
+                        onChange={(e) => setDemande(e.target.value)}
+                        placeholder="Ex: Consultation de suivi, vaccination..."
+                        className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                      />
+                      <Button
+                        className="w-full bg-primary hover:bg-primary-hover-600 text-primary-foreground mt-6 rounded-xl py-4"
+                        onClick={handleAddRdv}
+                      >
+                        Confirmer le rendez-vous
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
-    </section>
+    </main>
+  );
+
+  return (
+    <>
+      {currentView === "dashboard" && renderDashboard()}
+      {currentView === "profile" && renderProfile()}
+      {currentView === "rdvList" && renderRdvList()}
+    </>
   );
 };
 

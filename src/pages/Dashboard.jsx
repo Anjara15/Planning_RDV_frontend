@@ -1,13 +1,15 @@
+// src/pages/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import PatientDashboard from "./PatientDashboard";
 import MedecinDashboard from "./MedecinDashboard";
+import Header from "./Historiques/Header"; // Importation depuis src/pages/Historiques
 import UserHistory from "./section/UserHistory";
 import RdvHistory from "./section/RdvHistory";
 import RdvPage from "./section/RdvPage";
 import UsersPage from "./section/UsersPage";
-import { Users2, CalendarCheck, Settings, X, Bell, History, Eye, Trash2, Calendar, User, Activity, ArrowLeft } from "lucide-react";
+import { Users2, CalendarCheck, Settings, X, Bell, History } from "lucide-react";
 
 const Dashboard = () => {
   const [role, setRole] = useState(null);
@@ -32,7 +34,6 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  // Fonction pour ajouter une entrée dans l'historique
   const addToHistory = (action, details, user = currentUser) => {
     const historyEntry = {
       id: Date.now(),
@@ -46,7 +47,7 @@ const Dashboard = () => {
     };
 
     const existingHistory = JSON.parse(localStorage.getItem("appHistory") || "[]");
-    const updatedHistory = [historyEntry, ...existingHistory].slice(0, 1000); 
+    const updatedHistory = [historyEntry, ...existingHistory].slice(0, 1000);
     localStorage.setItem("appHistory", JSON.stringify(updatedHistory));
     setHistory(updatedHistory);
   };
@@ -86,7 +87,6 @@ const Dashboard = () => {
       }
     }
 
-    // Charger l'historique
     const historyJSON = localStorage.getItem("appHistory");
     if (historyJSON) {
       try {
@@ -96,7 +96,6 @@ const Dashboard = () => {
       }
     }
 
-    // Create alerts for new users and appointments
     const newUserAlerts = parsedUsers
       .filter(user => user.isNew)
       .map(user => ({
@@ -111,7 +110,6 @@ const Dashboard = () => {
       }));
     setAlerts([...newUserAlerts, ...newRdvAlerts]);
 
-    // connexion dans l'historique
     const foundUser = parsedUsers.find(user => user.username === JSON.parse(u).username && user.role === r) || JSON.parse(u);
     addToHistory("Connexion", `Connexion au tableau de bord`, foundUser);
   }, [navigate]);
@@ -220,26 +218,24 @@ const Dashboard = () => {
     navigate("/rendezvous");
   };
 
-
-  const AdminStaffDashboard = ({ label }) => (
+  const AdminStaffDashboard = ({ label, logout }) => (
     <div className="space-y-12">
-        <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-semibold text-primary tracking-tight">
-            Bienvenue, <span className="text-secondary">{label}</span>
-          </h2>
-          <button
-            onClick={() => setShowAlerts(!showAlerts)}
-            className="relative p-2 rounded-full hover:bg-muted"
-          >
-            <Bell className="w-6 h-6 text-primary" />
-            {alerts.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-                {alerts.length}
-              </span>
-            )}
-          </button>
-        </div>
-
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-semibold text-primary tracking-tight">
+          Bienvenue, <span className="text-secondary">{label}</span>
+        </h2>
+        <button
+          onClick={() => setShowAlerts(!showAlerts)}
+          className="relative p-2 rounded-full hover:bg-muted"
+        >
+          <Bell className="w-6 h-6 text-primary" />
+          {alerts.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
+              {alerts.length}
+            </span>
+          )}
+        </button>
+      </div>
       {/* Alerts Table */}
       {showAlerts && (
         <div className="p-4 border rounded bg-white shadow">
@@ -265,7 +261,6 @@ const Dashboard = () => {
           )}
         </div>
       )}
-
       {/* Page de sélection d'historique */}
       {showHistorySelection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -276,11 +271,9 @@ const Dashboard = () => {
             >
               <X className="w-6 h-6" />
             </button>
-
             <h3 className="text-4xl font-bold mb-8 text-center text-primary">
               Sélection d'historique
             </h3>
-
             <div className="grid md:grid-cols-2 gap-8">
               <div
                 onClick={() => handleHistoryTypeSelection("users")}
@@ -291,7 +284,6 @@ const Dashboard = () => {
                   <h4 className="text-xl font-semibold">Gestion d'utilisateurs</h4>
                 </div>
               </div>
-
               <div
                 onClick={() => handleHistoryTypeSelection("appointments")}
                 className="cursor-pointer p-8 border-2 border-secondary/20 hover:border-secondary rounded-lg"
@@ -302,7 +294,6 @@ const Dashboard = () => {
                 </div>
               </div>
             </div>
-
             <div className="mt-8 text-center">
               <Button variant="outline" onClick={() => setShowHistorySelection(false)}>
                 Annuler
@@ -311,7 +302,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
       {/* Bloc de statistiques */}
       <div className="grid md:grid-cols-4 gap-6 my-10">
         <div className="p-6 bg-primary/10 rounded-2xl shadow text-center">
@@ -319,27 +309,22 @@ const Dashboard = () => {
           <h4 className="text-lg font-bold text-primary">{users.length}</h4>
           <p className="text-muted-foreground">Utilisateurs</p>
         </div>
-
         <div className="p-6 bg-secondary/10 rounded-2xl shadow text-center">
           <CalendarCheck className="w-8 h-8 text-secondary mx-auto mb-2" />
           <h4 className="text-lg font-bold text-secondary">{rendezVous.length}</h4>
           <p className="text-muted-foreground">Rendez-vous</p>
         </div>
-
         <div className="p-6 bg-purple-100 rounded-2xl shadow text-center">
           <History className="w-8 h-8 text-purple-600 mx-auto mb-2" />
           <h4 className="text-lg font-bold text-purple-600">{_history.length}</h4>
           <p className="text-muted-foreground">Historique</p>
         </div>
-        
         <div className="p-6 bg-red-100 rounded-2xl shadow text-center">
           <Bell className="w-8 h-8 text-red-500 mx-auto mb-2" />
           <h4 className="text-lg font-bold text-red-500">{alerts.length}</h4>
           <p className="text-muted-foreground">Alertes</p>
         </div>
-
       </div>
-        
       <div className="grid md:grid-cols-4 gap-8">
         {/* Gestion des utilisateurs */}
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6">
@@ -357,29 +342,26 @@ const Dashboard = () => {
             >
               Gérer les comptes
             </Button>
-
           </div>
         </article>
-
         {/* Rendez-vous */}
-       <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-secondary border">
-        <h3 className="flex items-center gap-3 text-secondary font-semibold text-lg mb-3">
-          <CalendarCheck className="w-6 h-6" />
-          Rendez-vous
-        </h3>
-        <p className="text-muted-foreground leading-relaxed">
-          Supervisez et réaffectez les créneaux médicaux.
-        </p>
-        <div className="mt-6">
-          <Button
-            onClick={handleShowRendezVous}
-            className="bg-secondary hover:bg-secondary-hover-600 text-white transition-colors"
-          >
-            Voir les rendez-vous
-          </Button>
-        </div>
-      </article>
-
+        <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-secondary border">
+          <h3 className="flex items-center gap-3 text-secondary font-semibold text-lg mb-3">
+            <CalendarCheck className="w-6 h-6" />
+            Rendez-vous
+          </h3>
+          <p className="text-muted-foreground leading-relaxed">
+            Supervisez et réaffectez les créneaux médicaux.
+          </p>
+          <div className="mt-6">
+            <Button
+              onClick={handleShowRendezVous}
+              className="bg-secondary hover:bg-secondary-hover-600 text-white transition-colors"
+            >
+              Voir les rendez-vous
+            </Button>
+          </div>
+        </article>
         {/* Historique d'utilisation */}
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-purple-500 border">
           <h3 className="flex items-center gap-3 text-purple-600 font-semibold text-lg mb-3">
@@ -398,7 +380,6 @@ const Dashboard = () => {
             </Button>
           </div>
         </article>
-
         {/* Configuration */}
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-accent border">
           <h3 className="flex items-center gap-3 text-accent font-semibold text-lg mb-3">
@@ -410,7 +391,6 @@ const Dashboard = () => {
           </p>
         </article>
       </div>
-
       {showUsersTable && (
         <div className="mt-10">
           <div className="flex justify-end mb-4">
@@ -421,12 +401,9 @@ const Dashboard = () => {
               <X className="w-4 h-4" />
             </Button>
           </div>
-
-          {/* filtres */}
           <div className="bg-card rounded-2xl shadow-md border border-border p-6">
             <FiltresHistory filters={filters} onFiltersChange={setFilters} />
           </div>
-
           <div className="mt-6 overflow-auto max-h-[400px] border border-border rounded-lg">
             <table className="w-full border-collapse border border-border min-w-[700px]">
               <thead>
@@ -502,16 +479,13 @@ const Dashboard = () => {
               </tbody>
             </table>
           </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button onClick={() => setShowAddModal(true)} className="bg-green-500 hover:bg-green-600 text-white">
-                Ajouter un nouvel utilisateur
-              </Button>
-            </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <Button onClick={() => setShowAddModal(true)} className="bg-green-500 hover:bg-green-600 text-white">
+              Ajouter un nouvel utilisateur
+            </Button>
+          </div>
         </div>
       )}
-
-      {/* Modal d'ajout utilisateur */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-background rounded-2xl w-full max-w-2xl mx-auto my-auto p-10 relative shadow-2xl transform transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto">
@@ -528,7 +502,7 @@ const Dashboard = () => {
                 placeholder="Nom"
                 value={newUser.username}
                 onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all "
+                className="w-full border rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50 focus:outline-none transition-all"
               />
               <input
                 type="email"
@@ -564,53 +538,94 @@ const Dashboard = () => {
                 />
               )}
             </div>
-                {/* ajout espace */}
-                <div className="mt-10 flex justify-end gap-6">
-                  <Button
-                    onClick={handleAddUser}
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    Ajouter
-                  </Button>
-                  <Button
-                    onClick={() => setShowAddModal(false)}
-                    variant="outline"
-                    className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    Annuler
-                  </Button>
-                </div>
-                </div>
+            <div className="mt-10 flex justify-end gap-6">
+              <Button
+                onClick={handleAddUser}
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Ajouter
+              </Button>
+              <Button
+                onClick={() => setShowAddModal(false)}
+                variant="outline"
+                className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Annuler
+              </Button>
             </div>
+          </div>
+        </div>
       )}
-
-
     </div>
   );
 
+  // Définir les rôles, leurs composants et leurs headers
+  const roleConfig = [
+    {
+      role: "patient",
+      component: <PatientDashboard currentUser={currentUser} addToHistory={addToHistory} logout={logout} />,
+      header: <Header logout={logout} />,
+    },
+    {
+      role: "medecin",
+      component: <MedecinDashboard currentUser={currentUser} logout={logout} />,
+      header: <Header logout={logout} />,
+    },
+    {
+      role: "admin",
+      component: <AdminStaffDashboard label="Administrateur" logout={logout} />,
+      header: (
+        <header className="flex items-center justify-between border-b border-border pb-5">
+          <h1 className="text-4xl font-extrabold text-primary">Tableau de bord</h1>
+          <nav className="flex items-center gap-6">
+            <Link to="/" className="text-primary hover:text-primary-hover font-medium">
+              Accueil
+            </Link>
+            <Button
+              variant="outline"
+              onClick={logout}
+              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            >
+              Se déconnecter
+            </Button>
+          </nav>
+        </header>
+      ),
+    },
+    {
+      role: "staff",
+      component: <AdminStaffDashboard label="Personnel" logout={logout} />,
+      header: (
+        <header className="flex items-center justify-between border-b border-border pb-5">
+          <h1 className="text-4xl font-extrabold text-primary">Tableau de bord</h1>
+          <nav className="flex items-center gap-6">
+            <Link to="/" className="text-primary hover:text-primary-hover font-medium">
+              Accueil
+            </Link>
+            <Button
+              variant="outline"
+              onClick={logout}
+              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            >
+              Se déconnecter
+            </Button>
+          </nav>
+        </header>
+      ),
+    },
+  ];
+
   return (
     <main className="min-h-screen container mx-auto px-6 py-10 space-y-10 bg-background text-foreground">
-      <header className="flex items-center justify-between border-b border-border pb-5">
-        <h1 className="text-4xl font-extrabold text-primary">Tableau de bord</h1>
-        <nav className="flex items-center gap-6">
-          <Link to="/" className="text-primary hover:text-primary-hover font-medium">
-            Accueil
-          </Link>
-          
-          <Button
-            variant="outline"
-            onClick={logout}
-            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
-          >
-            Se déconnecter
-          </Button>
-        </nav>
-      </header>
-
-      {/* Contenu selon rôle */}
-      {role === "patient" && <PatientDashboard currentUser={currentUser} />}
-      {role === "medecin" && <MedecinDashboard currentUser={currentUser} />}
-      {(role === "admin" || role === "staff") && <AdminStaffDashboard label={role === "admin" ? "Administrateur" : "Personnel"} />}
+      {roleConfig.map(
+        (config) =>
+          config.role === role && (
+            <div key={config.role}>
+              {config.header}
+              {config.component}
+            </div>
+          )
+      )}
     </main>
   );
 };
