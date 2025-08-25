@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Users2, CalendarCheck, Bell, X, Clock, User, Calendar, ArrowLeft, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PropTypes from "prop-types";
+import { v4 as uuidv4 } from "uuid";
 
 const MedecinDashboard = ({ currentUser, addToHistory }) => {
   const [patients, setPatients] = useState([]);
@@ -19,6 +20,13 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
     adresse: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [planningSlots, setPlanningSlots] = useState([]);
+  const [showCreateSlotForm, setShowCreateSlotForm] = useState(false);
+  const [showWeekOnly, setShowWeekOnly] = useState(false);
+  const [newSlot, setNewSlot] = useState({ date: "", startTime: "", endTime: "", lieu: "", note: "" });
+  const [consultations, setConsultations] = useState([]);
+  const [newNote, setNewNote] = useState({ date: "", title: "", patient: "", content: "" });
+  const [consultationSearch, setConsultationSearch] = useState("");
 
   const getAppointmentStatus = (date, time) => {
     const now = new Date();
@@ -90,6 +98,16 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
         message: `Nouveau rendez-vous : ${rdv.username} le ${rdv.date} à ${rdv.time}`,
       }));
     setAlerts(newRdvAlerts);
+
+    // Load planning for this médecin
+    const planningKey = `planning:${username}`;
+    const storedPlanning = JSON.parse(localStorage.getItem(planningKey) || '[]');
+    setPlanningSlots(Array.isArray(storedPlanning) ? storedPlanning : []);
+
+    // Load consultations for this médecin
+    const consultationsKey = `consultations:${username}`;
+    const storedConsultations = JSON.parse(localStorage.getItem(consultationsKey) || '[]');
+    setConsultations(Array.isArray(storedConsultations) ? storedConsultations : []);
   }, [currentUser]);
 
   useEffect(() => {
@@ -113,6 +131,85 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
       setAlerts([]);
       addToHistory?.("Consultation alertes", "Consultation et marquage des alertes comme lues", currentUser);
     }
+  };
+
+  const savePlanning = (username, slots) => {
+    const planningKey = `planning:${username}`;
+    localStorage.setItem(planningKey, JSON.stringify(slots));
+  };
+
+  const saveConsultations = (username, items) => {
+    const consultationsKey = `consultations:${username}`;
+    localStorage.setItem(consultationsKey, JSON.stringify(items));
+  };
+
+  const getCurrentUsername = () => {
+    return JSON.parse(localStorage.getItem('user') || '{}')?.username || "Dr. Martin";
+  };
+
+  const getWeekRange = (date = new Date()) => {
+    const day = date.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day; // Monday as first day
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+    return { start: monday, end: sunday };
+  };
+
+  const handleCreateSlot = () => {
+    if (!newSlot.date || !newSlot.startTime || !newSlot.endTime) return;
+    const start = new Date(`${newSlot.date}T${newSlot.startTime}:00`);
+    const end = new Date(`${newSlot.date}T${newSlot.endTime}:00`);
+    if (end <= start) return;
+    const slot = { id: uuidv4(), ...newSlot };
+    const updated = [...planningSlots, slot].sort((a, b) => {
+      const aDate = new Date(`${a.date}T${a.startTime}:00`).getTime();
+      const bDate = new Date(`${b.date}T${b.startTime}:00`).getTime();
+      return aDate - bDate;
+    });
+    setPlanningSlots(updated);
+    const username = getCurrentUsername();
+    savePlanning(username, updated);
+    addToHistory?.("Création créneau", `Créneau ${newSlot.date} ${newSlot.startTime}-${newSlot.endTime}`, currentUser);
+    setNewSlot({ date: "", startTime: "", endTime: "", lieu: "", note: "" });
+    setShowCreateSlotForm(false);
+  };
+
+  const handleDeleteSlot = (id) => {
+    const updated = planningSlots.filter(s => s.id !== id);
+    setPlanningSlots(updated);
+    const username = getCurrentUsername();
+    savePlanning(username, updated);
+    addToHistory?.("Suppression créneau", `Suppression du créneau ${id}`, currentUser);
+  };
+
+  const handleAddConsultation = () => {
+    if (!newNote.title || !newNote.content) return;
+    const username = getCurrentUsername();
+    const note = {
+      id: uuidv4(),
+      date: newNote.date || new Date().toISOString().split('T')[0],
+      title: newNote.title,
+      patient: newNote.patient,
+      content: newNote.content,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [note, ...consultations];
+    setConsultations(updated);
+    saveConsultations(username, updated);
+    addToHistory?.("Ajout note", `Note: ${note.title}`, currentUser);
+    setNewNote({ date: "", title: "", patient: "", content: "" });
+  };
+
+  const handleDeleteConsultation = (id) => {
+    const username = getCurrentUsername();
+    const updated = consultations.filter(c => c.id !== id);
+    setConsultations(updated);
+    saveConsultations(username, updated);
+    addToHistory?.("Suppression note", `Note ${id}`, currentUser);
   };
 
   const navigateTo = (view) => {
@@ -473,78 +570,169 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
     </div>
   );
 
-  const renderPlanningPage = () => (
-    <div className="bg-white rounded-2xl shadow-md border border-border">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Planning de la semaine
-        </h3>
-      </div>
-      <div className="p-6">
-        <div className="text-center text-muted-foreground py-12">
-          <Calendar className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h4 className="text-lg font-medium mb-2">Planning hebdomadaire</h4>
-          <p className="mb-4">Gérez vos créneaux de consultation et votre disponibilité</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
+  const renderPlanningPage = () => {
+    const { start, end } = getWeekRange(new Date());
+    const slotsToShow = planningSlots.filter(slot => {
+      if (!showWeekOnly) return true;
+      const d = new Date(`${slot.date}T00:00:00`);
+      return d >= start && d <= end;
+    });
+    return (
+      <div className="bg-white rounded-2xl shadow-md border border-border">
+        <div className="p-6 border-b border-border flex items-center justify-between">
+          <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Mon planning
+          </h3>
+          <div className="flex gap-3">
             <Button
               className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl"
-              onClick={() => addToHistory?.("Création créneau", "Création d'un nouveau créneau", currentUser)}
+              onClick={() => setShowCreateSlotForm(v => !v)}
             >
-              Créer un créneau
+              {showCreateSlotForm ? "Fermer" : "Créer un créneau"}
             </Button>
             <Button
               variant="outline"
               className="rounded-xl"
-              onClick={() => addToHistory?.("Consultation planning", "Consultation du planning hebdomadaire", currentUser)}
+              onClick={() => {
+                setShowWeekOnly(v => !v);
+                addToHistory?.("Consultation planning", "Basculement filtre semaine", currentUser);
+              }}
             >
-              Voir la semaine
+              {showWeekOnly ? "Voir tout" : "Voir la semaine"}
             </Button>
           </div>
         </div>
-      </div>
-    </div>
-  );
+        <div className="p-6 space-y-6">
+          {showCreateSlotForm && (
+            <div className="border rounded-xl p-4 bg-muted/30">
+              <div className="grid md:grid-cols-5 gap-3">
+                <input type="date" value={newSlot.date} onChange={(e) => setNewSlot(s => ({ ...s, date: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border" />
+                <input type="time" value={newSlot.startTime} onChange={(e) => setNewSlot(s => ({ ...s, startTime: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border" />
+                <input type="time" value={newSlot.endTime} onChange={(e) => setNewSlot(s => ({ ...s, endTime: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border" />
+                <input type="text" placeholder="Lieu (optionnel)" value={newSlot.lieu} onChange={(e) => setNewSlot(s => ({ ...s, lieu: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border" />
+                <input type="text" placeholder="Note (optionnel)" value={newSlot.note} onChange={(e) => setNewSlot(s => ({ ...s, note: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border" />
+              </div>
+              <div className="mt-4 flex justify-end gap-3">
+                <Button variant="outline" className="rounded-xl" onClick={() => setShowCreateSlotForm(false)}>Annuler</Button>
+                <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl" onClick={handleCreateSlot}>Enregistrer</Button>
+              </div>
+            </div>
+          )}
 
-  const renderConsultationsPage = () => (
-    <div className="bg-white rounded-2xl shadow-md border border-border">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Historique des consultations
-        </h3>
-      </div>
-      <div className="p-6">
-        <div className="text-center text-muted-foreground py-12">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h4 className="text-lg font-medium mb-2">Consultations et notes médicales</h4>
-          <p className="mb-4">Accédez à l'historique complet des consultations et gérez vos notes</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-md mx-auto">
-            <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl"
-              onClick={() => addToHistory?.("Ajout note", "Création d'une nouvelle note médicale", currentUser)}
-            >
-              Nouvelles notes
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => addToHistory?.("Consultation historique", "Consultation de l'historique des consultations", currentUser)}
-            >
-              Historique
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => addToHistory?.("Recherche consultations", "Recherche dans les consultations", currentUser)}
-            >
-              Rechercher
-            </Button>
+          <div className="overflow-x-auto">
+            {slotsToShow.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Aucun créneau</p>
+            ) : (
+              <table className="w-full border-collapse border border-border min-w-[700px]">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Date</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Début</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Fin</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Lieu</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Note</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {slotsToShow.map(slot => (
+                    <tr key={slot.id} className="hover:bg-muted/50">
+                      <td className="border p-2 text-sm font-medium text-foreground">{slot.date}</td>
+                      <td className="border p-2 text-sm text-muted-foreground">{slot.startTime}</td>
+                      <td className="border p-2 text-sm text-muted-foreground">{slot.endTime}</td>
+                      <td className="border p-2 text-sm text-muted-foreground">{slot.lieu || "—"}</td>
+                      <td className="border p-2 text-sm text-muted-foreground">{slot.note || "—"}</td>
+                      <td className="border p-2 text-sm">
+                        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => handleDeleteSlot(slot.id)}>Supprimer</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderConsultationsPage = () => {
+    const filtered = consultations.filter((c) => {
+      const q = consultationSearch.toLowerCase();
+      return (
+        c.title.toLowerCase().includes(q) ||
+        c.content.toLowerCase().includes(q) ||
+        (c.patient || "").toLowerCase().includes(q)
+      );
+    });
+    return (
+      <div className="bg-white rounded-2xl shadow-md border border-border">
+        <div className="p-6 border-b border-border">
+          <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Consultations et notes
+          </h3>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="border rounded-xl p-4 bg-muted/30">
+            <h4 className="text-lg font-medium mb-3">Ajouter une note</h4>
+            <div className="grid md:grid-cols-6 gap-3">
+              <input type="date" value={newNote.date} onChange={(e) => setNewNote(n => ({ ...n, date: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border md:col-span-2" />
+              <input type="text" placeholder="Titre" value={newNote.title} onChange={(e) => setNewNote(n => ({ ...n, title: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border md:col-span-2" />
+              <select value={newNote.patient} onChange={(e) => setNewNote(n => ({ ...n, patient: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border md:col-span-2">
+                <option value="">Patient (optionnel)</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.username}>{p.username}</option>
+                ))}
+              </select>
+              <textarea placeholder="Contenu de la note" rows={3} value={newNote.content} onChange={(e) => setNewNote(n => ({ ...n, content: e.target.value }))} className="w-full rounded-xl px-4 py-3 border border-border md:col-span-6" />
+            </div>
+            <div className="mt-3 flex justify-end gap-3">
+              <Button variant="outline" className="rounded-xl" onClick={() => setNewNote({ date: "", title: "", patient: "", content: "" })}>Effacer</Button>
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl" onClick={handleAddConsultation}>Ajouter</Button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-medium">Historique</h4>
+            <input type="text" placeholder="Rechercher une note" value={consultationSearch} onChange={(e) => setConsultationSearch(e.target.value)} className="w-full md:w-80 rounded-xl px-4 py-3 border border-border" />
+          </div>
+
+          <div className="overflow-x-auto">
+            {filtered.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Aucune note</p>
+            ) : (
+              <table className="w-full border-collapse border border-border min-w-[700px]">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Date</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Titre</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Patient</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Contenu</th>
+                    <th className="border p-2 text-left text-sm font-medium text-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(note => (
+                    <tr key={note.id} className="hover:bg-muted/50">
+                      <td className="border p-2 text-sm font-medium text-foreground">{note.date}</td>
+                      <td className="border p-2 text-sm text-foreground">{note.title}</td>
+                      <td className="border p-2 text-sm text-muted-foreground">{note.patient || "—"}</td>
+                      <td className="border p-2 text-sm text-muted-foreground max-w-[400px] truncate" title={note.content}>{note.content}</td>
+                      <td className="border p-2 text-sm">
+                        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => handleDeleteConsultation(note.id)}>Supprimer</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderProfilPage = () => (
     <div className="bg-white rounded-2xl shadow-md border border-border">
