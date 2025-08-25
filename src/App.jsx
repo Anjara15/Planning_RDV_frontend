@@ -13,6 +13,7 @@ import UserHistory from "./pages/section/UserHistory";
 import RdvHistory from "./pages/section/RdvHistory";
 import RdvPage from "./pages/section/RdvPage";
 import UsersPage from "./pages/section/UsersPage";
+import CreneauForm from "./pages/Historiques/CreneauForm";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/history/appointments" element={<RdvHistory />} />
           <Route path="/rendezvous" element={<RdvPage />} /> 
           <Route path="/userspage" element={<UsersPage />} />
+          <Route path="/creer-creneau" element={<CreneauForm />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

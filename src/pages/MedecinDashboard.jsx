@@ -2,8 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { Users2, CalendarCheck, Bell, X, Clock, User, Calendar, ArrowLeft, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
+import EnhancedConsultationsPage from "./Historiques/ConsultationForm";
 
 const MedecinDashboard = ({ currentUser, addToHistory }) => {
+  const navigate = useNavigate();
+  
   const [patients, setPatients] = useState([]);
   const [rdvDuJour, setRdvDuJour] = useState([]);
   const [medecin, setMedecin] = useState(null);
@@ -250,6 +254,7 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
           </div>
         </article>
 
+        {/* Section Planning modifiée selon V2 */}
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border border-purple-500 rounded-xl">
           <h3 className="flex items-center gap-3 text-purple-600 font-semibold text-lg mb-3">
             <Calendar className="w-6 h-6" />
@@ -260,11 +265,14 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
           </p>
           <div className="mt-6">
             <Button
-              onClick={() => navigateTo("planning")}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white transition-colors rounded-xl"
+              onClick={() => {
+                addToHistory?.("Création créneau", "Création d'un nouveau créneau", currentUser);
+                navigate("/creer-creneau");
+              }}
             >
               <Calendar className="w-4 h-4 mr-2" />
-              Consulter
+              Créer un créneau
             </Button>
           </div>
         </article>
@@ -489,7 +497,10 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
             <Button
               className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl"
-              onClick={() => addToHistory?.("Création créneau", "Création d'un nouveau créneau", currentUser)}
+              onClick={() => {
+                addToHistory?.("Création créneau", "Création d'un nouveau créneau", currentUser);
+                navigate("/creer-creneau");
+              }}
             >
               Créer un créneau
             </Button>
@@ -507,43 +518,11 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
   );
 
   const renderConsultationsPage = () => (
-    <div className="bg-white rounded-2xl shadow-md border border-border">
-      <div className="p-6 border-b border-border">
-        <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Historique des consultations
-        </h3>
-      </div>
-      <div className="p-6">
-        <div className="text-center text-muted-foreground py-12">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h4 className="text-lg font-medium mb-2">Consultations et notes médicales</h4>
-          <p className="mb-4">Accédez à l'historique complet des consultations et gérez vos notes</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-md mx-auto">
-            <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl"
-              onClick={() => addToHistory?.("Ajout note", "Création d'une nouvelle note médicale", currentUser)}
-            >
-              Nouvelles notes
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => addToHistory?.("Consultation historique", "Consultation de l'historique des consultations", currentUser)}
-            >
-              Historique
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => addToHistory?.("Recherche consultations", "Recherche dans les consultations", currentUser)}
-            >
-              Rechercher
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <EnhancedConsultationsPage 
+      currentUser={currentUser} 
+      addToHistory={addToHistory}
+      patients={patients}
+    />
   );
 
   const renderProfilPage = () => (
