@@ -52,7 +52,7 @@ const EnhancedConsultationsPage = ({ currentUser, addToHistory, patients = [] })
   const renderOverview = () => (
     <div className="bg-white rounded-2xl shadow-md border border-gray-200">
       <div className="p-6 border-b border-gray-200">
-        <h3 className="text-xl font-semibold text-blue-600 flex items-center gap-2">
+        <h3 className="text-xl font-semibold text-blue-600  justify-center flex items-center gap-2">
           <FileText className="w-5 h-5" />
           Historique des consultations
         </h3>

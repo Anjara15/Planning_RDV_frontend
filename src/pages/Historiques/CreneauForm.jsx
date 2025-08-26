@@ -275,7 +275,7 @@ const CreneauForm = ({ onSave, addToHistory, currentUser }) => {
       {/* Liste des créneaux */}
       <div className="bg-white rounded-2xl shadow-md border border-border">
         <div className="p-6 border-b border-border">
-          <h3 className="text-xl font-semibold text-primary flex items-center gap-2">
+          <h3 className="text-xl font-semibold text-primary justify-center flex items-center gap-2">
             <Calendar className="w-5 h-5" /> 
             Créneaux existants ({creneaux.length})
           </h3>
