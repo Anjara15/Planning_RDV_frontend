@@ -378,14 +378,7 @@ const RdvHistory = () => {
     status: "",
   });
 
-  // Charger les données depuis localStorage
   const appointmentsData = useMemo(() => loadAppointmentsFromStorage(), []);
-
-  const navigate = (direction) => {
-    if (direction === "/dashboard") {
-      window.history.back();
-    }
-  };
 
   const filteredAppointments = useMemo(() => {
     let filtered = [...appointmentsData];
@@ -440,7 +433,6 @@ const RdvHistory = () => {
       });
     }
 
-    // Filtre par statut
     if (filters.status) {
       filtered = filtered.filter(appointment => appointment.status === filters.status);
     }
@@ -450,27 +442,8 @@ const RdvHistory = () => {
 
   return (
     <main className="min-h-screen container mx-auto px-6 py-10 space-y-10 bg-background text-foreground">
-      <header className="flex items-center justify-between border-b border-border pb-5">
-        <h1 className="text-4xl font-extrabold text-primary flex items-center gap-3">
-          <CalendarCheck className="w-8 h-8" />
-          Historique des Rendez-vous
-        </h1>
-
-        <Button
-          variant="outline"
-          onClick={() => navigate("/dashboard")}
-          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors flex items-center gap-2"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          Retour
-        </Button>
-      </header>
-
       {/* Contenu principal */}
       <section className="space-y-8">
-        {/* Cartes de statistiques */}
-        <StatsCards appointments={filteredAppointments} />
-
         {/* Filtres */}
         <div className="bg-card rounded-2xl shadow-md border border-border p-6">
           <HistoryFilters 

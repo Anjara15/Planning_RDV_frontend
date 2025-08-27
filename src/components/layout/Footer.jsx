@@ -14,7 +14,7 @@ export const Footer = () => {
                 <Heart className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-lg font-extrabold text-gray-900">HOMI</p>
+                {/* <p className="text-lg font-extrabold text-gray-900">HOMI</p> */}
                 <p className="text-xs text-gray-600">Votre Cabinet Médical</p>
               </div>
             </div>
@@ -73,7 +73,7 @@ export const Footer = () => {
                 <MapPin className="w-5 h-5 text-blue-600 mt-1" />
                 <p>
                   Hôpital HOMI<br />
-                  Rue Ravoninahitriniarivo, Antananarivo 101
+                  {/* Rue Ravoninahitriniarivo, Antananarivo 101 */}
                 </p>
               </div>
               <div className="flex items-start space-x-2">

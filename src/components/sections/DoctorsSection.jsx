@@ -103,7 +103,7 @@ export const DoctorsSection = () => {
           ))}
         </div>
 
-        {/* Modal / Popup */}
+        {/* Popup pour voir le profil */}
         {selectedDoctor && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-fade-in">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">

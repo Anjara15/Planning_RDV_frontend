@@ -26,7 +26,7 @@ export const HeroSection = () => {
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white text-xl px-10 py-4 rounded-full shadow-lg transition-transform transform hover:scale-105"
             >
-              Prendre un rendez-vous
+              Découvrir nos services
             </Button>
           </div>
           <div className="lg:w-1/2 relative animate-fade-in-up">

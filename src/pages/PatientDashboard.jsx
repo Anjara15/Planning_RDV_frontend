@@ -9,6 +9,8 @@ import {
   List,
   ChevronRight,
   ArrowLeft,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,29 +43,28 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedSpecialtyObj, setSelectedSpecialtyObj] = useState(null);
   const [initialized, setInitialized] = useState(false);
-  const [currentView, setCurrentView] = useState("dashboard");
-  const [profile, setProfile] = useState(
-    JSON.parse(localStorage.getItem("user")) || {
-      nom: "",
-      prenom: "",
-      email: "",
-      telephone: "",
-      dateNaissance: "",
-      adresse: "",
-    }
-  );
+  const [showRdvList, setShowRdvList] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profile, setProfile] = useState({
+    nom: "",
+    prenom: "",
+    email: "",
+    telephone: "",
+    dateNaissance: "",
+    adresse: "",
+  });
   const [editProfile, setEditProfile] = useState(null);
 
   useEffect(() => {
     if (!initialized) {
-      const storedProfile = JSON.parse(localStorage.getItem("user") || "{}");
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
       const updatedProfile = {
-        nom: storedProfile.username ? storedProfile.username.split(" ")[0] : storedProfile.nom || "",
-        prenom: storedProfile.username ? storedProfile.username.split(" ")[1] || "" : storedProfile.prenom || "",
-        email: storedProfile.email || "",
-        telephone: storedProfile.telephone || "",
-        dateNaissance: storedProfile.dateNaissance || "",
-        adresse: storedProfile.adresse || "",
+        nom: storedUser.username ? storedUser.username.split(" ")[0] : storedUser.nom || "",
+        prenom: storedUser.username ? storedUser.username.split(" ")[1] || "" : storedUser.prenom || "",
+        email: storedUser.email || "",
+        telephone: storedUser.telephone || "",
+        dateNaissance: storedUser.dateNaissance || "",
+        adresse: storedUser.adresse || "",
       };
       setProfile(updatedProfile);
       localStorage.setItem("user", JSON.stringify(updatedProfile));
@@ -74,6 +75,7 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
         appointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
       } catch (error) {
         console.error("Error parsing rendezVous from localStorage:", error);
+        appointments = [];
       }
 
       const userAppointments = appointments.filter((rdv) => {
@@ -121,23 +123,35 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
     } catch (error) {
       console.error("Error parsing rendezVous from localStorage:", error);
+      allAppointments = [];
     }
-    allAppointments.push(newRdv);
-    localStorage.setItem("rendezVous", JSON.stringify(allAppointments));
 
-    setRendezVous([...rendezVous, newRdv]);
-    setAlerts([
-      ...alerts,
+    allAppointments.push(newRdv);
+    try {
+      localStorage.setItem("rendezVous", JSON.stringify(allAppointments));
+    } catch (error) {
+      console.error("Error saving rendezVous to localStorage:", error);
+    }
+
+    setRendezVous((prev) => {
+      const updatedRendezVous = [...prev, newRdv];
+      return updatedRendezVous;
+    });
+
+    setAlerts((prev) => [
+      ...prev,
       {
         id: `rdv-${newRdv.id}`,
         message: `Nouveau rendez-vous ajouté pour le ${newRdv.date} à ${newRdv.time}`,
       },
     ]);
+
     addToHistory?.(
       "Ajout rendez-vous",
       `Ajout d'un rendez-vous: ${newRdv.specialite} le ${newRdv.date} à ${newRdv.time}`,
       currentUser
     );
+
     setIsModalOpen(false);
     setBookingStep(1);
     setSelectedSpecialtyObj(null);
@@ -156,9 +170,14 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
     } catch (error) {
       console.error("Error parsing rendezVous from localStorage:", error);
+      allAppointments = [];
     }
     const updatedAllAppointments = allAppointments.filter((rdv) => rdv.id !== rdvId);
-    localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
+    try {
+      localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
+    } catch (error) {
+      console.error("Error saving rendezVous to localStorage:", error);
+    }
 
     setRendezVous(updatedRdv);
     setAlerts(alerts.filter((alert) => alert.id !== `rdv-${rdvId}`));
@@ -182,11 +201,16 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
         allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
       } catch (error) {
         console.error("Error parsing rendezVous from localStorage:", error);
+        allAppointments = [];
       }
       const updatedAllAppointments = allAppointments.map((rdv) =>
         updatedRdv.find((u) => u.id === rdv.id) || rdv
       );
-      localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
+      try {
+        localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
+      } catch (error) {
+        console.error("Error saving rendezVous to localStorage:", error);
+      }
 
       setAlerts([]);
       addToHistory?.("Consultation alertes", "Consultation et marquage des alertes comme lues", currentUser);
@@ -225,251 +249,31 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     setEditProfile(null);
   };
 
-  const renderProfile = () => (
-    <div className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
-      <div className="flex justify-between items-center border-b border-border pb-5">
-        <Button
-          variant="outline"
-          onClick={() => {
-            setCurrentView("dashboard");
-            setEditProfile(null);
-          }}
-          className="px-4 py-2 rounded-xl"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Retour
-        </Button>
-      </div>
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
-        <h3 className="text-4xl font-bold mb-8 text-center text-primary">Mon profil</h3>
-        <div className="space-y-6">
-          {editProfile ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-base font-medium">Nom</Label>
-                  <Input
-                    name="nom"
-                    value={editProfile.nom || ""}
-                    onChange={handleProfileChange}
-                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                    placeholder="Entrez votre nom"
-                  />
-                </div>
-                <div>
-                  <Label className="text-base font-medium">Prénom</Label>
-                  <Input
-                    name="prenom"
-                    value={editProfile.prenom || ""}
-                    onChange={handleProfileChange}
-                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                    placeholder="Entrez votre prénom"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-base font-medium">Email</Label>
-                <Input
-                  name="email"
-                  value={editProfile.email || ""}
-                  onChange={handleProfileChange}
-                  type="email"
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  placeholder="Entrez votre email"
-                />
-              </div>
-              <div>
-                <Label className="text-base font-medium">Téléphone</Label>
-                <Input
-                  name="telephone"
-                  value={editProfile.telephone || ""}
-                  onChange={handleProfileChange}
-                  type="tel"
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  placeholder="Entrez votre numéro de téléphone"
-                />
-              </div>
-              <div>
-                <Label className="text-base font-medium">Date de naissance</Label>
-                <Input
-                  name="dateNaissance"
-                  value={editProfile.dateNaissance || ""}
-                  onChange={handleProfileChange}
-                  type="date"
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  placeholder="Entrez votre date de naissance"
-                />
-              </div>
-              <div>
-                <Label className="text-base font-medium">Adresse</Label>
-                <Input
-                  name="adresse"
-                  value={editProfile.adresse || ""}
-                  onChange={handleProfileChange}
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  placeholder="Entrez votre adresse"
-                />
-              </div>
-              <div className="flex justify-end gap-6 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  className="bg-primary hover:bg-primary-hover-600 text-primary-foreground px-8 py-4 rounded-xl"
-                  onClick={handleSaveProfile}
-                >
-                  Sauvegarder
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-base font-medium">Nom</Label>
-                  <Input
-                    value={profile.nom || "Non défini"}
-                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <Label className="text-base font-medium">Prénom</Label>
-                  <Input
-                    value={profile.prenom || "Non défini"}
-                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                    readOnly
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-base font-medium">Email</Label>
-                <Input
-                  value={profile.email || "Non défini"}
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-base font-medium">Téléphone</Label>
-                <Input
-                  value={profile.telephone || "Non défini"}
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-base font-medium">Date de naissance</Label>
-                <Input
-                  value={
-                    profile.dateNaissance
-                      ? new Date(profile.dateNaissance).toLocaleDateString("fr-FR")
-                      : "Non défini"
-                  }
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  readOnly
-                />
-              </div>
-              <div>
-                <Label className="text-base font-medium">Adresse</Label>
-                <Input
-                  value={profile.adresse || "Non défini"}
-                  className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
-                  readOnly
-                />
-              </div>
-              <div className="flex justify-end gap-6 pt-4">
-                <Button
-                  className="bg-primary hover:bg-primary-hover-600 text-primary-foreground px-8 py-4 rounded-xl"
-                  onClick={handleEditProfile}
-                >
-                  Modifier
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const toggleRdvList = () => {
+    setShowRdvList(!showRdvList);
+    setShowProfile(false);
+    if (!showRdvList) {
+      addToHistory?.("Consultation rendez-vous", "Ouverture de la liste des rendez-vous", currentUser);
+    }
+  };
 
-  const renderRdvList = () => (
-    <div className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
-      <div className="flex justify-between items-center border-b border-border pb-5">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentView("dashboard")}
-          className="px-4 py-2 rounded-xl"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Retour
-        </Button>
-      </div>
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
-        {rendezVous.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">Aucun rendez-vous enregistré</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {rendezVous.map((rdv) => (
-              <div
-                key={rdv.id}
-                className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      <span className="font-medium text-lg">
-                        {new Date(rdv.date).toLocaleDateString("fr-FR", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">{rdv.time || rdv.heure}</span>
-                    </div>
-                    <p className="text-foreground font-medium">{rdv.specialite}</p>
-                    {(rdv.demande || rdv.nom) && (
-                      <p className="text-muted-foreground mt-1">
-                        {rdv.demande || `Patient: ${rdv.nom} ${rdv.prenom || ""}`}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    {rdv.isNew && <Badge variant="secondary">Nouveau</Badge>}
-                    <Badge variant="outline">
-                      {new Date(rdv.date) > new Date() ? "À venir" : "Passé"}
-                    </Badge>
-                    {new Date(rdv.date) > new Date() && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleCancelRdv(rdv.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Annuler
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const toggleProfile = () => {
+    setShowProfile(!showProfile);
+    setShowRdvList(false);  
+    if (!showProfile) {
+      addToHistory?.("Consultation profil", "Ouverture du profil utilisateur", currentUser);
+    }
+  };
 
-  const renderDashboard = () => (
+  const isDateOnOrAfterToday = (dateStr) => {
+    const rdvDate = new Date(dateStr);
+    const today = new Date();
+    rdvDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    return rdvDate >= today;
+  };
+
+  return (
     <main className="min-h-screen container mx-auto px-6 py-10 space-y-12 bg-background text-foreground">
       <div className="flex justify-between items-center border-b border-border pb-5">
         <h2 className="text-3xl font-semibold text-primary tracking-tight">
@@ -542,21 +346,19 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
           <div className="mt-6">
             <Button
               variant="outline"
-              onClick={() => {
-                setCurrentView("rdvList");
-                addToHistory?.(
-                  "Consultation rendez-vous",
-                  "Ouverture de la liste des rendez-vous",
-                  currentUser
-                );
-              }}
+              onClick={toggleRdvList}
               className="border-orange-300 text-orange-600 hover:bg-orange-50"
             >
               <List className="w-4 h-4 mr-2" />
-              Voir mes RDV
+              {showRdvList ? "Masquer" : "Voir mes RDV"}
               <Badge variant="secondary" className="ml-2">
                 {rendezVous.length}
               </Badge>
+              {showRdvList ? (
+                <ChevronUp className="w-4 h-4 ml-2" />
+              ) : (
+                <ChevronDown className="w-4 h-4 ml-2" />
+              )}
             </Button>
           </div>
         </article>
@@ -572,14 +374,16 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
           <div className="mt-6">
             <Button
               variant="outline"
-              onClick={() => {
-                setCurrentView("profile");
-                addToHistory?.("Consultation profil", "Ouverture du profil utilisateur", currentUser);
-              }}
-              className="border-purple-300 text-purple-600 hover:bg-purple-50"
+              onClick={toggleProfile}
+              className="border-purple-300 text-purple-600 hover:bg-orange-50"
             >
               <User className="w-4 h-4 mr-2" />
-              Voir mon profil
+              {showProfile ? "Masquer" : "Voir mon profil"}
+              {showProfile ? (
+                <ChevronUp className="w-4 h-4 ml-2" />
+              ) : (
+                <ChevronDown className="w-4 h-4 ml-2" />
+              )}
             </Button>
           </div>
         </article>
@@ -595,62 +399,326 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
         </article>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
-        <h4 className="text-lg font-semibold mb-4 text-primary">Prochains rendez-vous</h4>
-        {rendezVous.length === 0 ? (
-          <div className="text-center py-8">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">Aucun rendez-vous prévu pour le moment.</p>
+      {/* Section pour mes rendez-vous */}
+      {showRdvList && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-lg font-semibold text-center w-full text-orange-600">Mes rendez-vous</h4>
+            <Button variant="ghost" onClick={toggleRdvList}>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
-        ) : (
-          <div className="grid gap-3">
-            {rendezVous
-              .filter((rdv) => new Date(rdv.date) > new Date())
-              .slice(0, 3)
-              .map((rdv) => (
+          {rendezVous.length === 0 ? (
+            <div className="text-center py-12">
+              <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground text-lg">Aucun rendez-vous enregistré</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {rendezVous.map((rdv) => (
                 <div
                   key={rdv.id}
-                  className={`p-4 rounded-lg border-l-4 hover:bg-muted/50 transition-colors ${
-                    rdv.isNew ? "bg-yellow-100 border-yellow-400" : "bg-muted border-border"
-                  }`}
+                  className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {new Date(rdv.date).toLocaleDateString("fr-FR", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {rdv.time || rdv.heure} - {rdv.specialite}
-                      </p>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Calendar className="w-5 h-5 text-primary" />
+                        <span className="font-medium text-lg">
+                          {new Date(rdv.date).toLocaleDateString("fr-FR", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">{rdv.time || rdv.heure}</span>
+                      </div>
+                      <p className="text-foreground font-medium">{rdv.specialite}</p>
                       {(rdv.demande || rdv.nom) && (
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <p className="text-muted-foreground mt-1">
                           {rdv.demande || `Patient: ${rdv.nom} ${rdv.prenom || ""}`}
                         </p>
                       )}
                     </div>
                     <div className="flex gap-2 items-center">
                       {rdv.isNew && <Badge variant="secondary">Nouveau</Badge>}
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleCancelRdv(rdv.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Annuler
-                      </Button>
+                      <Badge variant="outline">
+                        {isDateOnOrAfterToday(rdv.date) ? "À venir" : "Passé"}
+                      </Badge>
+                      {isDateOnOrAfterToday(rdv.date) && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleCancelRdv(rdv.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                        >
+                          Annuler
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* Section pour le profil */}
+      {showProfile && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-lg font-semibold text-center w-full text-purple-600">Mon profil</h4>
+            <Button variant="ghost" onClick={toggleProfile}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="space-y-6">
+            {editProfile ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-base font-medium">Nom</Label>
+                    <Input
+                      name="nom"
+                      value={editProfile.nom || ""}
+                      onChange={handleProfileChange}
+                      className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                      placeholder="Entrez votre nom"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-base font-medium">Prénom</Label>
+                    <Input
+                      name="prenom"
+                      value={editProfile.prenom || ""}
+                      onChange={handleProfileChange}
+                      className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                      placeholder="Entrez votre prénom"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Email</Label>
+                  <Input
+                    name="email"
+                    value={editProfile.email || ""}
+                    onChange={handleProfileChange}
+                    type="email"
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    placeholder="Entrez votre email"
+                  />
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Téléphone</Label>
+                  <Input
+                    name="telephone"
+                    value={editProfile.telephone || ""}
+                    onChange={handleProfileChange}
+                    type="tel"
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    placeholder="Entrez votre numéro de téléphone"
+                  />
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Date de naissance</Label>
+                  <Input
+                    name="dateNaissance"
+                    value={editProfile.dateNaissance || ""}
+                    onChange={handleProfileChange}
+                    type="date"
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    placeholder="Entrez votre date de naissance"
+                  />
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Adresse</Label>
+                  <Input
+                    name="adresse"
+                    value={editProfile.adresse || ""}
+                    onChange={handleProfileChange}
+                    className="mt-2 rounded-xl px-5 py-4 focus:ring-4 focus:ring-primary/50"
+                    placeholder="Entrez votre adresse"
+                  />
+                </div>
+                <div className="flex justify-end gap-6 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="px-8 py-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    className="bg-primary hover:bg-primary-hover-600 text-primary-foreground px-8 py-4 rounded-xl"
+                    onClick={handleSaveProfile}
+                  >
+                    Sauvegarder
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-base font-medium">Nom</Label>
+                    <p className="mt-2 text-foreground">{profile.nom || "Non défini"}</p>
+                  </div>
+                  <div>
+                    <Label className="text-base font-medium">Prénom</Label>
+                    <p className="mt-2 text-foreground">{profile.prenom || "Non défini"}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Email</Label>
+                  <p className="mt-2 text-foreground">{profile.email || "Non défini"}</p>
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Téléphone</Label>
+                  <p className="mt-2 text-foreground">{profile.telephone || "Non défini"}</p>
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Date de naissance</Label>
+                  <p className="mt-2 text-foreground">
+                    {profile.dateNaissance
+                      ? new Date(profile.dateNaissance).toLocaleDateString("fr-FR")
+                      : "Non défini"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-base font-medium">Adresse</Label>
+                  <p className="mt-2 text-foreground">{profile.adresse || "Non défini"}</p>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <Button
+                    className="bg-primary hover:bg-primary-hover-600 text-primary-foreground px-8 py-4 rounded-xl"
+                    onClick={handleEditProfile}
+                  >
+                    Modifier
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Section pour les prochains rendez-vous */}
+      {!showRdvList && !showProfile && (
+        <div className="bg-white rounded-2xl shadow-md p-6 border border-border">
+          <h4 className="text-lg font-semibold mb-4 text-center text-primary">Prochains rendez-vous</h4>
+          {(() => {
+            const newAppointments = rendezVous.filter((rdv) => rdv.isNew && isDateOnOrAfterToday(rdv.date));
+            return newAppointments.length > 0 ? (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    Nouveaux rendez-vous
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    ({newAppointments.length} nouveau{newAppointments.length > 1 ? "x" : ""})
+                  </span>
+                </div>
+                <div className="grid gap-3 mb-4">
+                  {newAppointments.slice(0, 3).map((rdv) => (
+                    <div
+                      key={rdv.id}
+                      className="p-4 rounded-lg border-l-4 bg-yellow-50 border-yellow-400 hover:bg-yellow-100 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {new Date(rdv.date).toLocaleDateString("fr-FR", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {rdv.time || rdv.heure} - {rdv.specialite}
+                          </p>
+                          {(rdv.demande || rdv.nom) && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {rdv.demande || `Patient: ${rdv.nom} ${rdv.prenom || ""}`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <Badge variant="secondary" className="bg-yellow-200 text-yellow-800">
+                            Nouveau
+                          </Badge>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleCancelRdv(rdv.id)}
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+          {(() => {
+            const upcomingAppointments = rendezVous.filter((rdv) => !rdv.isNew && isDateOnOrAfterToday(rdv.date));
+            return rendezVous.filter((rdv) => isDateOnOrAfterToday(rdv.date)).length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Aucun rendez-vous prévu pour le moment.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {upcomingAppointments.slice(0, 3).map((rdv) => (
+                  <div
+                    key={rdv.id}
+                    className="p-4 rounded-lg border-l-4 bg-muted border-border hover:bg-muted/70 transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {new Date(rdv.date).toLocaleDateString("fr-FR", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {rdv.time || rdv.heure} - {rdv.specialite}
+                        </p>
+                        {(rdv.demande || rdv.nom) && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {rdv.demande || `Patient: ${rdv.nom} ${rdv.prenom || ""}`}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleCancelRdv(rdv.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Modal de prise de rendez-vous */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-background rounded-2xl w-full max-w-4xl mx-auto my-auto p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -793,14 +861,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
         </div>
       )}
     </main>
-  );
-
-  return (
-    <>
-      {currentView === "dashboard" && renderDashboard()}
-      {currentView === "profile" && renderProfile()}
-      {currentView === "rdvList" && renderRdvList()}
-    </>
   );
 };
 

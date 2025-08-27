@@ -127,7 +127,6 @@ const FiltresHistory = ({ filters, onFiltersChange }) => {
 };
 
 const UserHistory = () => {
-  // Données d'exemple - remplacer par vos vraies données
   const [users, setUsers] = useState([
     { id: 1, nom: "Rakoto", email: "rakoto@mail.com", date: "2025-08-01" },
     { id: 2, nom: "Rasoa", email: "rasoa@mail.com", date: "2025-08-10" },
@@ -143,7 +142,6 @@ const UserHistory = () => {
     dateSpecific: ""
   });
 
-  // Charger les utilisateurs depuis localStorage si disponible
   useEffect(() => {
     const usersJSON = localStorage.getItem("users");
     if (usersJSON) {
@@ -158,15 +156,12 @@ const UserHistory = () => {
     }
   }, []);
 
-  // Fonction pour vérifier si une date est dans une période donnée
   const isDateInRange = (dateStr, range) => {
     if (!dateStr || !range || range === "all") return true;
     
     try {
       const userDate = new Date(dateStr);
       const today = new Date();
-      
-      // Normaliser les dates
       const normalizeDate = (date) => {
         return new Date(date.getFullYear(), date.getMonth(), date.getDate());
       };
@@ -206,7 +201,6 @@ const UserHistory = () => {
     }
   };
 
-  // Application des filtres
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       // Filtre par nom
@@ -255,69 +249,8 @@ const UserHistory = () => {
 
   const newThisWeek = users.filter((u) => isDateInRange(u.date, "week")).length;
 
-  const navigate = (direction) => {
-    if (direction === "/dashboard") {
-      window.history.back();
-    }
-  };
-
   return (
     <main className="min-h-screen container mx-auto px-6 py-10 space-y-10 bg-background text-foreground">
-      <header className="flex items-center justify-between border-b border-border pb-5">
-        <h1 className="text-4xl font-extrabold text-primary flex items-center gap-3">
-          <Users2 className="w-8 h-8" />
-          Historique des Utilisateurs
-        </h1>
-
-        <Button
-          variant="outline"
-          onClick={() => navigate("/dashboard")}
-          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors flex items-center gap-2"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          Retour
-        </Button>
-      </header>
-
-      {/* Statistiques */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Total Utilisateurs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-primary">{totalUsers}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Nouveaux ce mois</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-green-600">{newThisMonth}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Cette semaine</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-blue-600">{newThisWeek}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Affichés</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-orange-600">{filteredUsers.length}</p>
-          </CardContent>
-        </Card>
-      </section>
-
       {/* Filtres */}
       <section>
         <FiltresHistory filters={filters} onFiltersChange={setFilters} />
