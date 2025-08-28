@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, ArrowLeft, Users2, Search, Filter, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const FiltresHistory = ({ filters, onFiltersChange }) => {
   const handleFilterChange = (key, value) => {
@@ -115,6 +116,7 @@ const FiltresHistory = ({ filters, onFiltersChange }) => {
 };
 
 const UsersPage = () => {
+  const { success, error, warning } = useToast();
   const [users, setUsers] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -171,7 +173,7 @@ const UsersPage = () => {
     updatedUsers[originalIndex].isNew = false;
     setUsers(updatedUsers);
     localStorage.setItem("users", JSON.stringify(updatedUsers));
-    alert(`Utilisateur "${updatedUsers[originalIndex].username}" sauvegardé !`);
+    success(`Utilisateur "${updatedUsers[originalIndex].username}" sauvegardé !`);
   };
 
   const deleteUser = (index) => {
@@ -184,26 +186,26 @@ const UsersPage = () => {
 
   const handleAddUser = () => {
     if (!newUser.username.trim()) {
-      alert("Le nom d'utilisateur est requis !");
+      error("Le nom d'utilisateur est requis !");
       return;
     }
     if (newUser.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
-      alert("Veuillez entrer un email valide !");
+      error("Veuillez entrer un email valide !");
       return;
     }
     if (newUser.age && (isNaN(newUser.age) || newUser.age < 0)) {
-      alert("L'âge doit être un nombre positif !");
+      error("L'âge doit être un nombre positif !");
       return;
     }
     if (newUser.role === "medecin" && !newUser.specialite.trim()) {
-      alert("La spécialité est requise pour un médecin !");
+      error("La spécialité est requise pour un médecin !");
       return;
     }
 
     const updatedUsers = [...users, { ...newUser, isNew: true }];
     setUsers(updatedUsers);
     localStorage.setItem("users", JSON.stringify(updatedUsers));
-    alert(`Utilisateur "${newUser.username}" ajouté !`);
+    success(`Utilisateur "${newUser.username}" ajouté !`);
     setShowAddModal(false);
     setNewUser({ username: "", email: "", age: "", role: "patient", specialite: "" });
   };

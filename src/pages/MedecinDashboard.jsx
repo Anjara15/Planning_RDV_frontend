@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users2, CalendarCheck, Bell, X, Clock, User, Calendar, FileText, Settings, Plus, Edit, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Users2, CalendarCheck, X, Clock, User, Calendar, FileText, Settings, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +14,16 @@ const Modal = ({ isOpen, onClose, children }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300">
-      <div className="bg-white rounded-2xl w-full max-w-5xl p-10 shadow-xl relative animate-slide-in">
+      <div className="bg-white rounded-2xl w-full max-w-5xl shadow-xl relative animate-slide-in">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
-        {children}
+        <div className="p-10">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -30,9 +33,7 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
   const [patients, setPatients] = useState([]);
   const [rdvDuJour, setRdvDuJour] = useState([]);
   const [medecin, setMedecin] = useState(null);
-  const [alerts, setAlerts] = useState([]);
   const [secondaryView, setSecondaryView] = useState("patients");
-  const [showAlerts, setShowAlerts] = useState(false);
   const [profilData, setProfilData] = useState({
     username: "",
     specialite: "",
@@ -387,13 +388,7 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
       });
     setRdvDuJour(rdvToday);
 
-    const newRdvAlerts = rdvToday
-      .filter((rdv) => rdv.isNew)
-      .map((rdv) => ({
-        id: `rdv-${rdv.id}`,
-        message: `Nouveau rendez-vous : ${rdv.username} le ${rdv.date} à ${rdv.time}`,
-      }));
-    setAlerts(newRdvAlerts);
+    // Suppression des alertes: plus de cloche ni panneau d'alertes
 
     const storedSlots = JSON.parse(localStorage.getItem("slots") || "[]");
     setCreneaux(storedSlots.filter((slot) => slot.medecin === username));
@@ -404,23 +399,6 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
     addToHistory?.("Connexion", `Connexion au tableau de bord médecin`, currentUser);
   }, [loadAppointmentsAndAlerts, addToHistory, currentUser]);
 
-  const handleShowAlerts = () => {
-    setShowAlerts(!showAlerts);
-    if (!showAlerts && alerts.length > 0) {
-      const updatedRdv = rdvDuJour.map((rdv) => ({ ...rdv, isNew: false }));
-      setRdvDuJour(updatedRdv);
-
-      const storedRendezVous = JSON.parse(localStorage.getItem("rendezVous") || "[]");
-      const updatedStoredRendezVous = storedRendezVous.map((rdv) => {
-        const foundRdv = updatedRdv.find((updated) => updated.id === rdv.id);
-        return foundRdv ? { ...rdv, isNew: foundRdv.isNew } : rdv;
-      });
-      localStorage.setItem("rendezVous", JSON.stringify(updatedStoredRendezVous));
-
-      setAlerts([]);
-      addToHistory?.("Consultation alertes", "Consultation et marquage des alertes comme lues", currentUser);
-    }
-  };
 
   const navigateTo = (view) => {
     setSecondaryView(view);
@@ -450,6 +428,7 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
 
     addToHistory?.("Mise à jour profil", "Sauvegarde des modifications du profil", currentUser);
     setSecondaryView("patients");
+    toast.success("Profil mis à jour", { description: "Les informations du profil ont été sauvegardées." });
   };
 
   const handleCreneauInputChange = (field, value) => {
@@ -468,12 +447,14 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
       setSuccessMessage("Créneau modifié avec succès !");
       setEditingId(null);
       addToHistory?.("Modification créneau", "Modification d'un créneau existant", currentUser);
+      toast.success("Créneau modifié", { description: `${dataToSave.jour} • ${dataToSave.heureDebut} - ${dataToSave.heureFin}` });
     } else {
       const newCreneau = { id: Date.now().toString(), ...dataToSave };
       setCreneaux((prev) => [...prev, newCreneau]);
       localStorage.setItem("slots", JSON.stringify([...storedSlots, newCreneau]));
       setSuccessMessage("Créneau ajouté avec succès !");
       addToHistory?.("Création créneau", "Création d'un nouveau créneau", currentUser);
+      toast.success("Créneau ajouté", { description: `${dataToSave.jour} • ${dataToSave.heureDebut} - ${dataToSave.heureFin}` });
     }
 
     setShowSuccess(true);
@@ -505,6 +486,7 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
     addToHistory?.("Suppression créneau", "Suppression d'un créneau", currentUser);
+    toast.success("Créneau supprimé", { description: "Le créneau a été retiré du planning." });
   };
 
   const renderHeader = () => (
@@ -515,17 +497,6 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
         </h1>
       </div>
       <div className="flex items-center gap-4">
-        <button
-          onClick={handleShowAlerts}
-          className="relative p-2 rounded-full hover:bg-muted"
-        >
-          <Bell className="w-6 h-6 text-primary" />
-          {alerts.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-              {alerts.length}
-            </span>
-          )}
-        </button>
         <button
           onClick={() => navigateTo("profil")}
           className="relative p-2 rounded-full hover:bg-muted"
@@ -539,27 +510,7 @@ const MedecinDashboard = ({ currentUser, addToHistory }) => {
 
   const renderDashboard = () => (
     <>
-      {showAlerts && (
-        <div className="p-4 border rounded bg-white shadow">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold text-primary">Nouvelles alertes</h3>
-            <Button variant="destructive" onClick={handleShowAlerts}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          {alerts.length === 0 ? (
-            <p className="text-muted-foreground">Aucune alerte pour le moment.</p>
-          ) : (
-            <ul className="space-y-1">
-              {alerts.map((alert) => (
-                <li key={alert.id} className="p-2 bg-muted rounded">
-                  {alert.message}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border border-primary rounded-xl">

@@ -86,32 +86,19 @@ const PatientMedicalFile = ({ isOpen, onClose, patient, currentUser, addToHistor
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl">
-              <User className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-primary">Dossier Médical</h2>
-              <p className="text-muted-foreground">
-                {patient.username} • {patient.age} ans • {patient.email}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="rounded-xl"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
+      <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl relative">
+        {/* Close button without white header */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClose}
+          className="rounded-xl absolute top-4 right-4"
+        >
+          <X className="w-5 h-5" />
+        </Button>
 
-        {/* Patient Info Summary */}
-        <div className="p-6 bg-muted/20 border-b border-border">
+        {/* Patient Info Summary (sans barre d'entête) */}
+        <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-3">
               <User className="w-5 h-5 text-primary" />

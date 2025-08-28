@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Calendar,
   Heart,
   Clock,
-  Bell,
-  X,
   User,
   List,
   ChevronRight,
@@ -16,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 const availableSlots = {
   "2025-08-25": ["09:00", "10:30", "14:00", "15:30", "16:00"],
@@ -32,10 +31,11 @@ const specialties = [
 ];
 
 const PatientDashboard = ({ currentUser, addToHistory }) => {
+  
   const [rendezVous, setRendezVous] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showAlerts, setShowAlerts] = useState(false);
-  const [alerts, setAlerts] = useState([]);
+  const didWelcomeRef = useRef(false);
+
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
@@ -93,20 +93,41 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
 
       setRendezVous(userAppointments);
 
-      const newAlerts = userAppointments
-        .filter((rdv) => rdv.isNew)
-        .map((rdv) => ({
-          id: `rdv-${rdv.id}`,
-          message: `Nouveau rendez-vous ajouté pour le ${rdv.date} à ${rdv.time || rdv.heure}`,
-        }));
-      setAlerts(newAlerts);
+      // Afficher un toast pour chaque nouveau rendez-vous au lieu de créer des alertes
+      const newRdv = userAppointments.filter((rdv) => rdv.isNew);
+      if (newRdv.length > 0) {
+        newRdv.forEach((rdv) => {
+          toast.success(`Nouveau rendez-vous : ${rdv.specialite || 'Consultation'} le ${rdv.date} à ${rdv.time || rdv.heure}`);
+        });
+      }
 
       addToHistory?.("Connexion", `Connexion au tableau de bord patient`, currentUser);
+      
+      // Afficher un toast de bienvenue (une seule fois en dev/StrictMode)
+      if (!didWelcomeRef.current) {
+        toast.success(`Bienvenue ${updatedProfile.nom || 'Patient'} !`);
+        didWelcomeRef.current = true;
+      }
+      
       setInitialized(true);
     }
   }, [initialized, currentUser, addToHistory]);
 
   const handleAddRdv = () => {
+    // Validations et toasts d'erreur clairs
+    if (!selectedSpecialtyObj && !selectedSpecialty) {
+      toast.error("Veuillez choisir une spécialité.", { description: "Champs requis" });
+      return;
+    }
+    if (!selectedDate) {
+      toast.error("Veuillez sélectionner une date.", { description: "Champs requis" });
+      return;
+    }
+    if (!selectedTime) {
+      toast.error("Veuillez choisir une heure.", { description: "Champs requis" });
+      return;
+    }
+
     const username = `${profile.nom || "patient"} ${profile.prenom || "123"}`.trim();
     const newRdv = {
       id: Date.now(),
@@ -133,18 +154,17 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       console.error("Error saving rendezVous to localStorage:", error);
     }
 
-    setRendezVous((prev) => {
-      const updatedRendezVous = [...prev, newRdv];
-      return updatedRendezVous;
-    });
+    setRendezVous((prev) => [...prev, newRdv]);
 
-    setAlerts((prev) => [
-      ...prev,
-      {
-        id: `rdv-${newRdv.id}`,
-        message: `Nouveau rendez-vous ajouté pour le ${newRdv.date} à ${newRdv.time}`,
-      },
-    ]);
+    // Afficher un toast de confirmation (succès visible en haut-centre)
+    toast.success("Rendez-vous ajouté avec succès", {
+      description: `${newRdv.specialite || 'Consultation'} — ${new Date(newRdv.date).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })} à ${newRdv.time}${demande ? `\nMotif: ${demande}` : ''}`,
+    });
 
     addToHistory?.(
       "Ajout rendez-vous",
@@ -180,7 +200,6 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
     }
 
     setRendezVous(updatedRdv);
-    setAlerts(alerts.filter((alert) => alert.id !== `rdv-${rdvId}`));
     addToHistory?.(
       "Annulation rendez-vous",
       `Annulation du rendez-vous: ${rdvToCancel.specialite} le ${rdvToCancel.date} à ${
@@ -188,34 +207,12 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       }`,
       currentUser
     );
+    
+    // Afficher un toast de confirmation d'annulation
+    toast.success(`Rendez-vous annulé avec succès`, { description: "Annulation confirmée" });
   };
 
-  const handleShowAlerts = () => {
-    setShowAlerts(!showAlerts);
-    if (!showAlerts) {
-      const updatedRdv = rendezVous.map((rdv) => ({ ...rdv, isNew: false }));
-      setRendezVous(updatedRdv);
 
-      let allAppointments = [];
-      try {
-        allAppointments = JSON.parse(localStorage.getItem("rendezVous") || "[]");
-      } catch (error) {
-        console.error("Error parsing rendezVous from localStorage:", error);
-        allAppointments = [];
-      }
-      const updatedAllAppointments = allAppointments.map((rdv) =>
-        updatedRdv.find((u) => u.id === rdv.id) || rdv
-      );
-      try {
-        localStorage.setItem("rendezVous", JSON.stringify(updatedAllAppointments));
-      } catch (error) {
-        console.error("Error saving rendezVous to localStorage:", error);
-      }
-
-      setAlerts([]);
-      addToHistory?.("Consultation alertes", "Consultation et marquage des alertes comme lues", currentUser);
-    }
-  };
 
   const handleEditProfile = () => {
     setEditProfile({ ...profile });
@@ -228,7 +225,7 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
 
   const handleSaveProfile = () => {
     if (!editProfile.nom || !editProfile.prenom || !editProfile.email) {
-      alert("Veuillez remplir tous les champs obligatoires (Nom, Prénom, Email).");
+      toast.error("Veuillez remplir tous les champs obligatoires (Nom, Prénom, Email).");
       return;
     }
 
@@ -238,10 +235,10 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       setProfile(updatedProfile);
       setEditProfile(null);
       addToHistory?.("Modification profil", "Mise à jour des informations du profil", currentUser);
-      alert("Profil mis à jour avec succès !");
+      toast.success("Profil mis à jour avec succès !");
     } catch (error) {
       console.error("Error saving profile to localStorage:", error);
-      alert("Erreur lors de la sauvegarde du profil.");
+      toast.error("Erreur lors de la sauvegarde du profil.");
     }
   };
 
@@ -279,41 +276,10 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
         <h2 className="text-3xl font-semibold text-primary tracking-tight">
           Bienvenue, <span className="text-secondary">{profile.nom || "Utilisateur"}</span>
         </h2>
-        <button
-          onClick={handleShowAlerts}
-          className="relative p-2 rounded-full hover:bg-muted"
-          data-testid="bell-icon"
-        >
-          <Bell className="w-6 h-6 text-primary" />
-          {alerts.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-1">
-              {alerts.length}
-            </span>
-          )}
-        </button>
+
       </div>
 
-      {showAlerts && (
-        <div className="p-4 border rounded bg-white shadow">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold text-primary">Nouvelles alertes</h3>
-            <Button variant="destructive" onClick={handleShowAlerts}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          {alerts.length === 0 ? (
-            <p className="text-muted-foreground">Aucune alerte pour le moment.</p>
-          ) : (
-            <ul className="space-y-1">
-              {alerts.map((alert) => (
-                <li key={alert.id} className="p-2 bg-muted rounded">
-                  {alert.message}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+
 
       <div className="grid md:grid-cols-4 gap-8">
         <article className="medical-card medical-shadow hover:medical-shadow-hover transition-transform duration-300 hover:-translate-y-1 p-6 border-primary border">
@@ -405,7 +371,7 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold text-center w-full text-orange-600">Mes rendez-vous</h4>
             <Button variant="ghost" onClick={toggleRdvList}>
-              <X className="w-4 h-4" />
+              Fermer
             </Button>
           </div>
           {rendezVous.length === 0 ? (
@@ -472,7 +438,7 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold text-center w-full text-purple-600">Mon profil</h4>
             <Button variant="ghost" onClick={toggleProfile}>
-              <X className="w-4 h-4" />
+              Fermer
             </Button>
           </div>
           <div className="space-y-6">
@@ -722,16 +688,18 @@ const PatientDashboard = ({ currentUser, addToHistory }) => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-background rounded-2xl w-full max-w-4xl mx-auto my-auto p-10 relative shadow-2xl max-h-[90vh] overflow-y-auto">
-            <button
+            <Button
               onClick={() => {
                 setIsModalOpen(false);
                 setBookingStep(1);
                 setSelectedSpecialtyObj(null);
               }}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-destructive rounded-full p-1 hover:bg-muted/50"
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
             >
-              <X className="w-6 h-6" />
-            </button>
+              ✕
+            </Button>
             <h3 className="text-4xl font-bold mb-8 text-center text-primary">
               Prendre un rendez-vous
             </h3>

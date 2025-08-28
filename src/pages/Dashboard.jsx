@@ -9,8 +9,10 @@ import RdvHistory from "./section/RdvHistory";
 import RdvPage from "./section/RdvPage";
 import UsersPage from "./section/UsersPage";
 import { Users2, CalendarCheck, X, Bell, History } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
+  const { success, error, warning } = useToast();
   const [role, setRole] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
@@ -138,7 +140,7 @@ const Dashboard = () => {
     addToHistory("Sauvegarde utilisateur", `Sauvegarde des modifications pour l'utilisateur ${updatedUsers[index].username}`);
 
     setAlerts(alerts.filter(alert => alert.id !== `user-${updatedUsers[index].username}`));
-    alert(`Utilisateur "${updatedUsers[index].username}" sauvegardé !`);
+    success(`Utilisateur "${updatedUsers[index].username}" sauvegardé !`);
   };
 
   const deleteUser = (index) => {
@@ -159,7 +161,7 @@ const Dashboard = () => {
 
   const handleAddUser = () => {
     if (!newUser.username || !newUser.email || !newUser.age) {
-      alert("Veuillez remplir tous les champs obligatoires.");
+      error("Veuillez remplir tous les champs obligatoires.");
       return;
     }
     const updatedUsers = [...users, { ...newUser, isNew: true }];
@@ -170,7 +172,7 @@ const Dashboard = () => {
     addToHistory("Ajout utilisateur", `Ajout d'un nouvel utilisateur: ${newUser.username} (${newUser.role})`);
 
     setShowAddModal(false);
-    alert(`Utilisateur "${newUser.username}" ajouté !`);
+    success(`Utilisateur "${newUser.username}" ajouté !`);
     setNewUser({ username: "", email: "", age: "", role: "patient", specialite: "", isNew: false });
   };
 
@@ -399,13 +401,6 @@ const Dashboard = () => {
               <div className="bg-white rounded-xl shadow-md p-6 border border-border">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-2xl font-semibold text-primary">Gestion des utilisateurs</h3>
-                  <Button
-                    onClick={() => setShowAddModal(true)}
-                    className="bg-green-600 hover:bg-green-700 text-white rounded-lg"
-                    aria-label="Ajouter un nouvel utilisateur"
-                  >
-                    Ajouter un utilisateur
-                  </Button>
                 </div>
                 <div className="overflow-auto max-h-[500px] border border-border rounded-lg">
                   <table className="w-full border-collapse min-w-[700px]">
@@ -510,103 +505,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Add User Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-background rounded-xl w-full max-w-md p-8 relative shadow-2xl transform transition-all duration-300 scale-95 animate-in fade-in">
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-destructive rounded-full p-1 hover:bg-muted/50 transition-colors duration-200"
-              aria-label="Fermer le formulaire d'ajout"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h3 className="text-2xl font-bold mb-6 text-center text-primary">Ajouter un utilisateur</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">Nom *</label>
-                <input
-                  type="text"
-                  placeholder="Nom"
-                  value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none text-sm"
-                  aria-label="Nom du nouvel utilisateur"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">Email *</label>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none text-sm"
-                  aria-label="Email du nouvel utilisateur"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">Âge *</label>
-                <input
-                  type="number"
-                  placeholder="Âge"
-                  value={newUser.age}
-                  onChange={(e) => setNewUser({ ...newUser, age: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none text-sm"
-                  aria-label="Âge du nouvel utilisateur"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-primary mb-1">Rôle</label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none text-sm"
-                  aria-label="Rôle du nouvel utilisateur"
-                >
-                  <option value="patient">Patient</option>
-                  <option value="medecin">Médecin</option>
-                  <option value="admin">Admin</option>
-                  <option value="staff">Staff</option>
-                </select>
-              </div>
-              {newUser.role === "medecin" && (
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-1">Spécialité</label>
-                  <input
-                    type="text"
-                    placeholder="Spécialité"
-                    value={newUser.specialite}
-                    onChange={(e) => setNewUser({ ...newUser, specialite: e.target.value })}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none text-sm"
-                    aria-label="Spécialité du médecin"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button
-                onClick={handleAddUser}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium"
-                aria-label="Ajouter l'utilisateur"
-              >
-                Ajouter
-              </Button>
-              <Button
-                onClick={() => setShowAddModal(false)}
-                variant="outline"
-                className="px-6 py-2 rounded-lg font-medium"
-                aria-label="Annuler l'ajout"
-              >
-                Annuler
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add User Modal supprimé pour l'admin */}
     </div>
   );
 

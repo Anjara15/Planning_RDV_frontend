@@ -6,5 +6,46 @@ export function useToast() {
   if (!context) {
     throw new Error("useToast must be used within a Toaster provider");
   }
-  return context;
+
+  const { addToast } = context;
+
+  const success = (message, title = "Succès") => {
+    addToast({
+      title,
+      description: message,
+      variant: "default",
+    });
+  };
+
+  const error = (message, title = "Erreur") => {
+    addToast({
+      title,
+      description: message,
+      variant: "destructive",
+    });
+  };
+
+  const warning = (message, title = "Attention") => {
+    addToast({
+      title,
+      description: message,
+      variant: "default",
+    });
+  };
+
+  const info = (message, title = "Information") => {
+    addToast({
+      title,
+      description: message,
+      variant: "default",
+    });
+  };
+
+  return {
+    ...context,
+    success,
+    error,
+    warning,
+    info,
+  };
 }

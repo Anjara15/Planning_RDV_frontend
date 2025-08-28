@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { Calendar, User, FileText, Save, Pill, Plus, X, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ const PrescriptionModal = ({ isOpen, onClose, patientName, consultationId, curre
   const generatePrescription = () => {
     const validMedications = medications.filter((med) => med.name.trim() !== "");
     if (validMedications.length === 0 && !instructions.trim()) {
+      toast.error("Veuillez ajouter au moins un médicament ou des instructions.");
       return;
     }
 
@@ -55,6 +57,7 @@ const PrescriptionModal = ({ isOpen, onClose, patientName, consultationId, curre
     addToHistory?.("Génération ordonnance", `Ordonnance générée pour ${patientName}`, currentUser);
 
     setShowSuccess(true);
+    toast.success("Ordonnance générée", { description: `${patientName} • ${new Date().toLocaleDateString('fr-FR')}` });
     setTimeout(() => {
       setShowSuccess(false);
       onClose();
@@ -65,22 +68,18 @@ const PrescriptionModal = ({ isOpen, onClose, patientName, consultationId, curre
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div>
-                <h2 className="text-2xl font-bold text-primary">Génération d'Ordonnance</h2>
-                <p className="text-muted-foreground">Patient : {patientName}</p>
-              </div>
-            </div>
-            <Button variant="ghost" onClick={onClose} className="rounded-xl">
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
+      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
+        <Button variant="ghost" onClick={onClose} className="rounded-xl absolute top-4 right-4">
+          <X className="w-5 h-5" />
+        </Button>
 
         <div className="p-6 space-y-6">
+          <div className="flex items-start justify-between border-b border-border pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-primary">Génération d'Ordonnance</h2>
+              <p className="text-muted-foreground">Patient : {patientName}</p>
+            </div>
+          </div>
           {showSuccess && (
             <Alert className="border-green-300 bg-green-50">
               <AlertDescription className="text-green-700">
@@ -228,6 +227,7 @@ const EnhancedConsultationsPage = ({ currentUser, addToHistory, patients }) => {
 
   const handleFormSubmit = () => {
     if (!formData.patientId || !formData.examination || !formData.diagnosis) {
+      toast.error("Champs requis manquants", { description: "Patient, examen et diagnostic sont obligatoires." });
       return;
     }
 
@@ -269,6 +269,7 @@ const EnhancedConsultationsPage = ({ currentUser, addToHistory, patients }) => {
     setConsultations([...consultations, newConsultation]);
     setSuccessMessage("Note de consultation enregistrée avec succès !");
     setShowSuccess(true);
+    toast.success("Consultation enregistrée", { description: `${newConsultation.patientName} — ${newConsultation.date} à ${newConsultation.time}` });
     setShowGeneratePrescriptionButton(true);
     setLastSavedConsultationId(newConsultation.id);
     setSelectedPatientForPrescription(newConsultation.patientName);
